@@ -1,16 +1,24 @@
 import { useState } from "react";
 import { ROLES, RoleKey } from "@/lib/mock-data";
-import { LayoutDashboard, ClipboardList, Cpu, Truck, Settings, ChevronDown, Bell, UserCircle2 } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Cpu, Truck, Settings, ChevronDown, Bell, UserCircle2, CalendarDays } from "lucide-react";
 
 const NAV_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "Übersicht": LayoutDashboard,
+  "Wochenplan": CalendarDays,
   "Auftragsplanung": ClipboardList,
   "Maschinen": Cpu,
   "Versand": Truck,
   "Einstellungen": Settings,
 };
 
-export function Sidebar({ role, onRoleChange }: { role: RoleKey; onRoleChange: (r: RoleKey) => void }) {
+interface SidebarProps {
+  role: RoleKey;
+  onRoleChange: (r: RoleKey) => void;
+  activeNav: string;
+  onNavChange: (n: string) => void;
+}
+
+export function Sidebar({ role, onRoleChange, activeNav, onNavChange }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const current = ROLES.find((r) => r.key === role)!;
 
@@ -26,12 +34,11 @@ export function Sidebar({ role, onRoleChange }: { role: RoleKey; onRoleChange: (
         </div>
       </div>
 
-      {/* Role switcher */}
       <div className="px-3 pt-4 pb-2">
         <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50 px-2 mb-1.5">Rolle</div>
         <button
           onClick={() => setOpen(!open)}
-          className="w-full flex items-center gap-3 rounded-lg bg-sidebar-accent hover:bg-sidebar-accent/80 transition px-3 py-2.5 text-left ai-card-glow"
+          className="w-full flex items-center gap-3 rounded-2xl bg-sidebar-accent hover:bg-sidebar-accent/80 transition px-3 py-2.5 text-left ai-card-glow"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-sm font-semibold">
             {current.person.split(" ").map((s) => s[0]).join("").slice(0, 2)}
@@ -43,12 +50,12 @@ export function Sidebar({ role, onRoleChange }: { role: RoleKey; onRoleChange: (
           <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
         </button>
         {open && (
-          <div className="mt-1.5 rounded-lg bg-sidebar-accent/60 p-1 fade-swap">
+          <div className="mt-1.5 rounded-2xl bg-sidebar-accent/60 p-1 fade-swap">
             {ROLES.map((r) => (
               <button
                 key={r.key}
                 onClick={() => { onRoleChange(r.key); setOpen(false); }}
-                className={`w-full rounded-md px-3 py-2 text-left text-xs hover:bg-sidebar-accent transition ${
+                className={`w-full rounded-xl px-3 py-2 text-left text-xs hover:bg-sidebar-accent transition ${
                   r.key === role ? "bg-sidebar-accent text-sidebar-primary-foreground" : ""
                 }`}
               >
@@ -61,13 +68,14 @@ export function Sidebar({ role, onRoleChange }: { role: RoleKey; onRoleChange: (
       </div>
 
       <nav className="flex-1 px-3 py-3 space-y-0.5">
-        {current.nav.map((item, i) => {
+        {current.nav.map((item) => {
           const Icon = NAV_ICONS[item] ?? LayoutDashboard;
-          const active = i === 0;
+          const active = item === activeNav;
           return (
             <button
               key={item}
-              className={`w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+              onClick={() => onNavChange(item)}
+              className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
                 active
                   ? "bg-sidebar-accent text-sidebar-primary-foreground"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
@@ -99,7 +107,7 @@ export function TopBar({ roleName, person }: { roleName: string; person: string 
         <div className="text-[11px] text-muted-foreground">Aktuell · {time} Uhr</div>
       </div>
       <div className="flex items-center gap-4">
-        <button className="relative rounded-md p-2 hover:bg-muted transition">
+        <button className="relative rounded-xl p-2 hover:bg-muted transition">
           <Bell className="h-4 w-4" />
           <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1">2</span>
         </button>
