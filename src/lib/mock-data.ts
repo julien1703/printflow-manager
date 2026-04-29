@@ -101,9 +101,94 @@ export const AI_SUGGESTIONS = [
 export type RoleKey = "produktionsleitung" | "buchbinderei" | "logistik" | "drucker" | "projektmanager";
 
 export const ROLES: { key: RoleKey; name: string; person: string; nav: string[] }[] = [
-  { key: "produktionsleitung", name: "Produktionsleitung", person: "Hr. Maisch",  nav: ["Übersicht","Auftragsplanung","Maschinen","Versand","Einstellungen"] },
-  { key: "buchbinderei",       name: "Buchbinderei / WV",  person: "Hr. Seifert", nav: ["Übersicht","Auftragsplanung","Einstellungen"] },
-  { key: "logistik",           name: "Logistik & Versand", person: "Fr. Batt",    nav: ["Übersicht","Versand","Einstellungen"] },
-  { key: "drucker",            name: "Drucker",            person: "Maschinenführer", nav: ["Übersicht","Maschinen","Einstellungen"] },
-  { key: "projektmanager",     name: "Projektmanager",     person: "Kundenbetreuung", nav: ["Übersicht","Auftragsplanung","Einstellungen"] },
+  { key: "produktionsleitung", name: "Produktionsleitung", person: "Hr. Maisch",  nav: ["Übersicht","Wochenplan","Auftragsplanung","Maschinen","Versand","Einstellungen"] },
+  { key: "buchbinderei",       name: "Buchbinderei / WV",  person: "Hr. Seifert", nav: ["Übersicht","Wochenplan","Auftragsplanung","Einstellungen"] },
+  { key: "logistik",           name: "Logistik & Versand", person: "Fr. Batt",    nav: ["Übersicht","Wochenplan","Versand","Einstellungen"] },
+  { key: "drucker",            name: "Drucker",            person: "Maschinenführer", nav: ["Übersicht","Wochenplan","Maschinen","Einstellungen"] },
+  { key: "projektmanager",     name: "Projektmanager",     person: "Kundenbetreuung", nav: ["Übersicht","Wochenplan","Auftragsplanung","Einstellungen"] },
 ];
+
+/* ========== Live print status (Im Druck) ========== */
+export interface LivePrintJob {
+  id: string;
+  customer: string;
+  machine: Machine;
+  progress: number;       // 0–100
+  finishInMin: number;    // estimated minutes remaining
+  wvInHours: number;      // ready for WV in ~Xh
+  ownerCustomer?: string; // for projektmanager filtering
+}
+
+export const LIVE_PRINT: LivePrintJob[] = [
+  { id: "#42512-001", customer: "Rossmann GmbH", machine: "CD",  progress: 67, finishInMin: 45, wvInHours: 2 },
+  { id: "#42512-006", customer: "Uni Stuttgart", machine: "RZK", progress: 32, finishInMin: 110, wvInHours: 4 },
+  { id: "#42512-002", customer: "LCR Broschüre", machine: "RZK", progress: 92, finishInMin: 12, wvInHours: 1 },
+];
+
+/* ========== Wochenplan slot grid ========== */
+export type Slot = "Früh" | "Spät";
+export const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr"] as const;
+export type Weekday = typeof WEEKDAYS[number];
+export const SLOTS: Slot[] = ["Früh", "Spät"];
+export const TODAY_INDEX = 2; // "Mi" highlighted as today
+
+export interface WeekSlot {
+  machine: Machine;
+  day: Weekday;
+  slot: Slot;
+  jobId?: string;
+  customer?: string;
+  phase?: Phase;
+  ownerPM?: string; // projektmanager owner key
+}
+
+// Mock weekly plan — gives every machine a believable weekly load
+export const WEEK_PLAN: WeekSlot[] = [
+  // CD
+  { machine: "CD", day: "Mo", slot: "Früh", jobId: "#42512-005", customer: "Stadtwerk Tü", phase: "Schneiden", ownerPM: "Müller" },
+  { machine: "CD", day: "Mo", slot: "Spät", jobId: "#42512-001", customer: "Rossmann GmbH", phase: "Vordruck", ownerPM: "Müller" },
+  { machine: "CD", day: "Di", slot: "Früh", jobId: "#42512-001", customer: "Rossmann GmbH", phase: "Hauptdruck", ownerPM: "Müller" },
+  { machine: "CD", day: "Di", slot: "Spät" },
+  { machine: "CD", day: "Mi", slot: "Früh", jobId: "#42512-001", customer: "Rossmann GmbH", phase: "Hauptdruck", ownerPM: "Müller" },
+  { machine: "CD", day: "Mi", slot: "Spät", jobId: "#42512-005", customer: "Stadtwerk Tü", phase: "Hauptdruck", ownerPM: "Müller" },
+  { machine: "CD", day: "Do", slot: "Früh", jobId: "#42512-008", customer: "Sparkasse RT", phase: "Vordruck", ownerPM: "Schmidt" },
+  { machine: "CD", day: "Do", slot: "Spät", jobId: "#42512-008", customer: "Sparkasse RT", phase: "Hauptdruck", ownerPM: "Schmidt" },
+  { machine: "CD", day: "Fr", slot: "Früh" },
+  { machine: "CD", day: "Fr", slot: "Spät" },
+  // RZK
+  { machine: "RZK", day: "Mo", slot: "Früh", jobId: "#42512-002", customer: "LCR Broschüre", phase: "Hauptdruck", ownerPM: "Schmidt" },
+  { machine: "RZK", day: "Mo", slot: "Spät", jobId: "#42512-006", customer: "Uni Stuttgart", phase: "Vordruck", ownerPM: "Schmidt" },
+  { machine: "RZK", day: "Di", slot: "Früh", jobId: "#42512-002", customer: "LCR Broschüre", phase: "Nachbereitung", ownerPM: "Schmidt" },
+  { machine: "RZK", day: "Di", slot: "Spät", jobId: "#42512-006", customer: "Uni Stuttgart", phase: "Hauptdruck", ownerPM: "Schmidt" },
+  { machine: "RZK", day: "Mi", slot: "Früh", jobId: "#42512-006", customer: "Uni Stuttgart", phase: "Hauptdruck", ownerPM: "Schmidt" },
+  { machine: "RZK", day: "Mi", slot: "Spät" },
+  { machine: "RZK", day: "Do", slot: "Früh", jobId: "#42512-006", customer: "Uni Stuttgart", phase: "Nachbereitung", ownerPM: "Schmidt" },
+  { machine: "RZK", day: "Do", slot: "Spät" },
+  { machine: "RZK", day: "Fr", slot: "Früh" },
+  { machine: "RZK", day: "Fr", slot: "Spät" },
+  // SM5
+  { machine: "SM5", day: "Mo", slot: "Früh" },
+  { machine: "SM5", day: "Mo", slot: "Spät", jobId: "#42512-003", customer: "Flora & Fauna", phase: "Schneiden", ownerPM: "Müller" },
+  { machine: "SM5", day: "Di", slot: "Früh", jobId: "#42512-003", customer: "Flora & Fauna", phase: "Vordruck", ownerPM: "Müller" },
+  { machine: "SM5", day: "Di", slot: "Spät", jobId: "#42512-003", customer: "Flora & Fauna", phase: "Vordruck", ownerPM: "Müller" },
+  { machine: "SM5", day: "Mi", slot: "Früh", jobId: "#42512-003", customer: "Flora & Fauna", phase: "Hauptdruck", ownerPM: "Müller" },
+  { machine: "SM5", day: "Mi", slot: "Spät", jobId: "#42512-007", customer: "Bäckerei Mock", phase: "Schneiden", ownerPM: "Müller" },
+  { machine: "SM5", day: "Do", slot: "Früh", jobId: "#42512-007", customer: "Bäckerei Mock", phase: "Hauptdruck", ownerPM: "Müller" },
+  { machine: "SM5", day: "Do", slot: "Spät" },
+  { machine: "SM5", day: "Fr", slot: "Früh", jobId: "#42512-007", customer: "Bäckerei Mock", phase: "Nachbereitung", ownerPM: "Müller" },
+  { machine: "SM5", day: "Fr", slot: "Spät" },
+  // Digi
+  { machine: "Digi", day: "Mo", slot: "Früh", jobId: "#42512-004", customer: "Mayer & Söhne", phase: "Versandfertig", ownerPM: "Schmidt" },
+  { machine: "Digi", day: "Mo", slot: "Spät" },
+  { machine: "Digi", day: "Di", slot: "Früh" },
+  { machine: "Digi", day: "Di", slot: "Spät", jobId: "#42512-009", customer: "Theater Tü", phase: "Vordruck", ownerPM: "Müller" },
+  { machine: "Digi", day: "Mi", slot: "Früh", jobId: "#42512-009", customer: "Theater Tü", phase: "Hauptdruck", ownerPM: "Müller" },
+  { machine: "Digi", day: "Mi", slot: "Spät" },
+  { machine: "Digi", day: "Do", slot: "Früh" },
+  { machine: "Digi", day: "Do", slot: "Spät" },
+  { machine: "Digi", day: "Fr", slot: "Früh" },
+  { machine: "Digi", day: "Fr", slot: "Spät" },
+];
+
+// "My" projektmanager (for filtering in PM weekly view)
+export const CURRENT_PM = "Müller";
