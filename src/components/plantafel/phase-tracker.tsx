@@ -3,26 +3,43 @@ import { Job, PHASES, MACHINE_META } from "@/lib/mock-data";
 export function PhaseTracker({ job }: { job: Job }) {
   const currentIdx = PHASES.indexOf(job.phase);
   const color = MACHINE_META[job.machine].color;
+  const doneColor = "oklch(0.72 0.18 145)"; // green
+
+  // Gradient progress line based on position
+  const pct = PHASES.length > 1 ? (currentIdx / (PHASES.length - 1)) * 100 : 0;
 
   return (
-    <div className="relative flex items-center justify-between px-2 py-3">
-      {/* connecting line */}
-      <div className="absolute left-4 right-4 top-1/2 h-px -translate-y-1/2 bg-border" />
+    <div className="relative flex items-center justify-between px-2 py-4">
+      {/* base line */}
+      <div className="absolute left-4 right-4 top-1/2 h-[2px] -translate-y-1/2 rounded-full bg-border" />
+      {/* gradient progress line */}
+      <div
+        className="absolute left-4 top-1/2 h-[2px] -translate-y-1/2 rounded-full"
+        style={{
+          width: `calc((100% - 2rem) * ${pct / 100})`,
+          background: `linear-gradient(90deg, ${doneColor} 0%, ${color} 100%)`,
+          boxShadow: `0 0 10px color-mix(in oklab, ${color} 40%, transparent)`,
+        }}
+      />
       {PHASES.map((p, i) => {
         const isCurrent = i === currentIdx;
         const isDone = i < currentIdx;
         const hasProblem = isCurrent && !!job.problem;
+        const dotColor = isCurrent ? color : isDone ? doneColor : "white";
         return (
           <div key={p} className="relative z-10 flex flex-1 flex-col items-center">
             <span
-              className={`flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 transition-all`}
+              className={`flex items-center justify-center rounded-full transition-all ${isCurrent ? "pulse-glow" : ""}`}
               style={{
-                backgroundColor: isCurrent ? color : isDone ? `color-mix(in oklab, ${color} 50%, white)` : "white",
-                borderColor: isCurrent || isDone ? color : "var(--border)",
+                width: isCurrent ? 16 : 12,
+                height: isCurrent ? 16 : 12,
+                backgroundColor: dotColor,
+                border: `2px solid ${isCurrent || isDone ? dotColor : "var(--border)"}`,
                 boxShadow: isCurrent
-                  ? `0 0 10px ${color}, 0 0 20px color-mix(in oklab, ${color} 40%, transparent)`
-                  : "none",
-                color,
+                  ? `0 0 0 3px white, 0 0 12px ${color}, 0 0 24px color-mix(in oklab, ${color} 50%, transparent)`
+                  : isDone
+                    ? `0 0 0 2px white, 0 0 6px ${doneColor}`
+                    : "none",
               }}
             />
             {hasProblem && (
@@ -37,7 +54,7 @@ export function PhaseTracker({ job }: { job: Job }) {
 
 export function PhaseHeader() {
   return (
-    <div className="flex items-center justify-between px-2 pb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="flex items-center justify-between px-2 pb-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
       {PHASES.map((p) => (
         <span key={p} className="flex-1 text-center">{p}</span>
       ))}

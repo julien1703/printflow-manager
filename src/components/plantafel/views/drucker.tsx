@@ -13,9 +13,15 @@ export function DruckerView() {
   const next = queue.slice(1, 3);
 
   return (
-    <div className="p-6 space-y-5 fade-swap">
+    <div className="p-8 space-y-6 fade-swap">
+      <header>
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
+          Drucker · Maschinenführer
+        </div>
+        <h1 className="editorial-header text-4xl">Maschinen-Auftrag</h1>
+      </header>
       {/* Machine selector */}
-      <div className="flex items-center gap-2 rounded-xl bg-card border border-border shadow-sm p-2 w-fit">
+      <div className="flex items-center gap-2 rounded-2xl bg-card border border-border shadow-sm p-2 w-fit">
         {MACHINES.map((m) => {
           const active = m === machine;
           return (
@@ -42,7 +48,7 @@ export function DruckerView() {
 
       {current ? (
         <div
-          className="rounded-2xl bg-card border-2 shadow-lg p-8"
+          className="rounded-[28px] bg-card border-2 shadow-lg p-8"
           style={{ borderColor: MACHINE_META[current.machine].color }}
         >
           <div className="flex items-start justify-between mb-4">
@@ -82,7 +88,7 @@ export function DruckerView() {
             {next.map((j) => (
               <div
                 key={j.id}
-                className="rounded-xl bg-card border border-border shadow-sm p-4"
+                className="rounded-2xl bg-card border border-border shadow-sm p-5"
                 style={{ borderLeftWidth: 4, borderLeftColor: MACHINE_META[j.machine].color }}
               >
                 <div className="flex items-center justify-between">
