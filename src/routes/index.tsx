@@ -7,6 +7,7 @@ import { BuchbindereiView } from "@/components/plantafel/views/buchbinderei";
 import { LogistikView } from "@/components/plantafel/views/logistik";
 import { DruckerView } from "@/components/plantafel/views/drucker";
 import { ProjektmanagerView } from "@/components/plantafel/views/projektmanager";
+import { Wochenplan } from "@/components/plantafel/wochenplan";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,19 +23,31 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [role, setRole] = useState<RoleKey>("produktionsleitung");
+  const [nav, setNav] = useState<string>("Übersicht");
   const current = ROLES.find((r) => r.key === role)!;
+
+  const handleRoleChange = (r: RoleKey) => {
+    setRole(r);
+    setNav("Übersicht");
+  };
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <Sidebar role={role} onRoleChange={setRole} />
+      <Sidebar role={role} onRoleChange={handleRoleChange} activeNav={nav} onNavChange={setNav} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar roleName={current.name} person={current.person} />
-        <main className="flex-1 overflow-auto" key={role}>
-          {role === "produktionsleitung" && <ProduktionsleitungView />}
-          {role === "buchbinderei" && <BuchbindereiView />}
-          {role === "logistik" && <LogistikView />}
-          {role === "drucker" && <DruckerView />}
-          {role === "projektmanager" && <ProjektmanagerView />}
+        <main className="flex-1 overflow-auto" key={`${role}-${nav}`}>
+          {nav === "Wochenplan" ? (
+            <Wochenplan role={role} />
+          ) : (
+            <>
+              {role === "produktionsleitung" && <ProduktionsleitungView />}
+              {role === "buchbinderei" && <BuchbindereiView />}
+              {role === "logistik" && <LogistikView />}
+              {role === "drucker" && <DruckerView />}
+              {role === "projektmanager" && <ProjektmanagerView />}
+            </>
+          )}
         </main>
       </div>
     </div>
