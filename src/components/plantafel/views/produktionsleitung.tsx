@@ -1,7 +1,7 @@
 import { JOBS, UPCOMING, MESSAGES, AI_SUGGESTIONS, MACHINE_META } from "@/lib/mock-data";
-import { PhaseTracker, PhaseHeader } from "./phase-tracker";
-import { ZeitPill } from "./zeit-pill";
-import { MachineBadge, MachineDot } from "./dots";
+import { PhaseTracker, PhaseHeader } from "../phase-tracker";
+import { ZeitPill } from "../zeit-pill";
+import { MachineBadge, MachineDot } from "../dots";
 import { AlertTriangle, MessageSquare, Sparkles, Check, X, Clock } from "lucide-react";
 import { useState } from "react";
 
