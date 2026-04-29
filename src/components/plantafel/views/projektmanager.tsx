@@ -22,7 +22,13 @@ export function ProjektmanagerView() {
   });
 
   return (
-    <div className="p-6 space-y-5 fade-swap">
+    <div className="p-8 space-y-6 fade-swap">
+      <header>
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
+          Projektmanager · Kundenbetreuung
+        </div>
+        <h1 className="editorial-header text-4xl">Meine Aufträge</h1>
+      </header>
       <div className="flex gap-3 items-center">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -48,7 +54,7 @@ export function ProjektmanagerView() {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card border border-border shadow-sm overflow-hidden">
+      <div className="soft-card soft-card-lg overflow-hidden">
         {filtered.map((j) => {
           const k = KUNDE_STATUS_MAP[j.status];
           const isOpen = expanded === j.id;

@@ -22,9 +22,15 @@ export function LogistikView() {
   };
 
   return (
-    <div className="p-6 space-y-5 fade-swap">
+    <div className="p-8 space-y-6 fade-swap">
+      <header>
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
+          Logistik & Versand
+        </div>
+        <h1 className="editorial-header text-4xl">Versand-Übersicht</h1>
+      </header>
       {urgent > 0 && (
-        <div className="flex items-center gap-3 rounded-lg bg-[oklch(0.65_0.22_25/0.12)] border border-[oklch(0.65_0.22_25/0.35)] px-4 py-3">
+        <div className="flex items-center gap-3 rounded-2xl bg-[oklch(0.65_0.22_25/0.10)] border border-[oklch(0.65_0.22_25/0.35)] px-5 py-3.5 pulse-border-red">
           <AlertTriangle className="h-4 w-4 text-[oklch(0.55_0.22_25)]" />
           <span className="text-sm font-semibold text-[oklch(0.45_0.22_25)]">
             ⚠ {urgent} Aufträge benötigen sofortige Buchung!
@@ -32,7 +38,7 @@ export function LogistikView() {
         </div>
       )}
 
-      <div className="rounded-xl bg-card border border-border shadow-sm overflow-hidden">
+      <div className="soft-card soft-card-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
             <tr>
