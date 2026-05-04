@@ -5,8 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", "Inter", ui-serif, serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+  --font-display: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -52,54 +53,55 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
 
-  /* Warm off-white surface */
-  --background: oklch(0.985 0.008 95);   /* warm #FAFAF8 */
-  --foreground: oklch(0.20 0.02 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.20 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.20 0.02 260);
+  /* Druckerei Pfitzer GmbH — Papier, Druckfarbe, Präzision */
+  --background: oklch(0.974 0.006 85);    /* warmes Papierweiss */
+  --foreground: oklch(0.13 0.012 260);    /* Tintenschwarz */
+  --card: oklch(0.999 0 0);
+  --card-foreground: oklch(0.13 0.012 260);
+  --popover: oklch(0.999 0 0);
+  --popover-foreground: oklch(0.13 0.012 260);
 
-  --primary: oklch(0.55 0.18 250);
+  --primary: oklch(0.28 0.13 255);        /* Drucktinten-Dunkelblau */
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0.01 95);
-  --secondary-foreground: oklch(0.25 0.02 260);
-  --muted: oklch(0.96 0.008 95);
-  --muted-foreground: oklch(0.50 0.02 260);
-  --accent: oklch(0.94 0.03 230);
-  --accent-foreground: oklch(0.25 0.05 250);
-  --destructive: oklch(0.60 0.22 25);
+  --secondary: oklch(0.95 0.005 85);
+  --secondary-foreground: oklch(0.20 0.010 260);
+  --muted: oklch(0.958 0.005 85);
+  --muted-foreground: oklch(0.46 0.012 260);
+  --accent: oklch(0.94 0.008 82);
+  --accent-foreground: oklch(0.20 0.012 260);
+  --destructive: oklch(0.50 0.20 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.92 0.008 95);
-  --input: oklch(0.93 0.008 95);
-  --ring: oklch(0.70 0.10 240);
+  --border: oklch(0.89 0.005 85);
+  --input: oklch(0.91 0.005 85);
+  --ring: oklch(0.48 0.12 255);
 
-  /* Dark sidebar */
-  --sidebar: oklch(0.22 0.02 260);
-  --sidebar-foreground: oklch(0.92 0.01 250);
-  --sidebar-primary: oklch(0.65 0.18 240);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.28 0.03 260);
-  --sidebar-accent-foreground: oklch(0.95 0.01 250);
-  --sidebar-border: oklch(0.30 0.02 260);
-  --sidebar-ring: oklch(0.65 0.18 240);
+  /* Sidebar — Druckertinte, fast Schwarz */
+  --sidebar: oklch(0.13 0.020 260);
+  --sidebar-foreground: oklch(0.88 0.008 250);
+  --sidebar-primary: oklch(0.66 0.19 48);   /* Pfitzer-Orange */
+  --sidebar-primary-foreground: oklch(0.10 0.01 260);
+  --sidebar-accent: oklch(0.19 0.022 260);
+  --sidebar-accent-foreground: oklch(0.90 0.008 250);
+  --sidebar-border: oklch(0.23 0.018 260);
+  --sidebar-ring: oklch(0.66 0.19 48);
 
-  /* Machine colors */
-  --machine-cd: oklch(0.72 0.17 55);
-  --machine-rzk: oklch(0.62 0.18 245);
-  --machine-sm5: oklch(0.68 0.17 145);
-  --machine-digi: oklch(0.60 0.20 305);
+  /* Maschinenfarben — Pantone-ähnlich, satt und eindeutig */
+  --machine-cd:   oklch(0.67 0.20 50);    /* Pantone Orange — CD-Maschine */
+  --machine-rzk:  oklch(0.48 0.20 258);   /* Pantone Blau   — RZK */
+  --machine-sm5:  oklch(0.56 0.18 153);   /* Pantone Grün   — SM5 */
+  --machine-digi: oklch(0.50 0.20 308);   /* Pantone Violett — Digi */
 
   /* Status */
-  --status-ahead: oklch(0.68 0.17 145);
-  --status-onplan: oklch(0.62 0.18 245);
-  --status-behind: oklch(0.60 0.22 25);
-  --status-warn: oklch(0.80 0.17 85);
+  --status-ahead:  oklch(0.52 0.17 153);
+  --status-onplan: oklch(0.46 0.16 258);
+  --status-behind: oklch(0.50 0.20 25);
+  --status-warn:   oklch(0.74 0.16 82);
 
-  --glow-blue: 0 0 12px oklch(0.75 0.14 240 / 0.7), 0 0 24px oklch(0.75 0.14 240 / 0.35);
-  --shadow-soft: 0 1px 2px oklch(0.20 0.02 260 / 0.04), 0 8px 24px oklch(0.20 0.02 260 / 0.06);
+  --glow-blue: 0 0 8px oklch(0.48 0.20 258 / 0.45), 0 0 18px oklch(0.48 0.20 258 / 0.20);
+  --shadow-soft: 0 1px 2px oklch(0.13 0.012 260 / 0.05), 0 4px 16px oklch(0.13 0.012 260 / 0.07);
+  --shadow-drawer: -4px 0 40px oklch(0.13 0.012 260 / 0.16);
 }
 
 .dark {
@@ -122,25 +124,30 @@
 @layer utilities {
   /* Editorial section header */
   .editorial-header {
-    font-weight: 300;
-    letter-spacing: 0.01em;
+    font-weight: 600;
+    letter-spacing: -0.02em;
     line-height: 1.1;
   }
   .kpi-numeral {
     font-feature-settings: "tnum" 1;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
   }
 
-  /* Soft organic card */
+  /* Soft card */
   .soft-card {
-    border-radius: 24px;
+    border-radius: 16px;
     background-color: var(--card);
     border: 1px solid var(--border);
     box-shadow: var(--shadow-soft);
   }
   .soft-card-lg {
-    border-radius: 28px;
+    border-radius: 20px;
+  }
+
+  /* Drawer */
+  .drawer-panel {
+    box-shadow: var(--shadow-drawer);
   }
 
   /* Glow dots */
