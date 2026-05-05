@@ -24,6 +24,7 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [role, setRole] = useState<RoleKey>("produktionsleitung");
   const [nav, setNav] = useState<string>("Übersicht");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const current = ROLES.find((r) => r.key === role)!;
 
   const handleRoleChange = (r: RoleKey) => {
@@ -33,7 +34,7 @@ function Index() {
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <Sidebar role={role} onRoleChange={handleRoleChange} activeNav={nav} onNavChange={setNav} />
+      <Sidebar role={role} onRoleChange={handleRoleChange} activeNav={nav} onNavChange={setNav} collapsed={!sidebarOpen} onToggle={() => setSidebarOpen(o => !o)} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar roleName={current.name} person={current.person} />
         <main className="flex-1 overflow-auto" key={`${role}-${nav}`}>
