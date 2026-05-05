@@ -1,49 +1,49 @@
-import { Job, PHASES, MACHINE_META } from "@/lib/mock-data";
+import { Job, PHASES } from "@/lib/mock-data";
+
+const GREEN = "oklch(0.52 0.15 153)";
+const RED   = "oklch(0.50 0.19 25)";
+const GRAY  = "var(--border)";
 
 export function PhaseTracker({ job }: { job: Job }) {
   const currentIdx = PHASES.indexOf(job.phase);
-  const color = MACHINE_META[job.machine].color;
-  const doneColor = "oklch(0.72 0.18 145)"; // green
-
-  // Gradient progress line based on position
+  const isBehind = job.status === "Hinterher";
+  const activeColor = isBehind ? RED : GREEN;
   const pct = PHASES.length > 1 ? (currentIdx / (PHASES.length - 1)) * 100 : 0;
 
   return (
     <div className="relative flex items-center justify-between px-2 py-4">
       {/* base line */}
-      <div className="absolute left-4 right-4 top-1/2 h-[2px] -translate-y-1/2 rounded-full bg-border" />
-      {/* gradient progress line */}
+      <div className="absolute left-4 right-4 top-1/2 h-px -translate-y-1/2 bg-border" />
+      {/* progress line */}
       <div
-        className="absolute left-4 top-1/2 h-[2px] -translate-y-1/2 rounded-full"
-        style={{
-          width: `calc((100% - 2rem) * ${pct / 100})`,
-          background: `linear-gradient(90deg, ${doneColor} 0%, ${color} 100%)`,
-          boxShadow: `0 0 10px color-mix(in oklab, ${color} 40%, transparent)`,
-        }}
+        className="absolute left-4 top-1/2 h-px -translate-y-1/2"
+        style={{ width: `calc((100% - 2rem) * ${pct / 100})`, backgroundColor: GREEN }}
       />
       {PHASES.map((p, i) => {
         const isCurrent = i === currentIdx;
-        const isDone = i < currentIdx;
-        const hasProblem = isCurrent && !!job.problem;
-        const dotColor = isCurrent ? color : isDone ? doneColor : "white";
+        const isDone    = i < currentIdx;
         return (
           <div key={p} className="relative z-10 flex flex-1 flex-col items-center">
             <span
-              className={`flex items-center justify-center rounded-full transition-all ${isCurrent ? "pulse-glow" : ""}`}
-              style={{
-                width: isCurrent ? 16 : 12,
-                height: isCurrent ? 16 : 12,
-                backgroundColor: dotColor,
-                border: `2px solid ${isCurrent || isDone ? dotColor : "var(--border)"}`,
-                boxShadow: isCurrent
-                  ? `0 0 0 3px white, 0 0 12px ${color}, 0 0 24px color-mix(in oklab, ${color} 50%, transparent)`
+              className="flex items-center justify-center rounded-full transition-all"
+              style={
+                isCurrent
+                  ? {
+                      width: 14,
+                      height: 14,
+                      backgroundColor: "var(--card)",
+                      border: `2.5px solid ${activeColor}`,
+                      boxShadow: `0 0 0 3px color-mix(in oklab, ${activeColor} 18%, transparent)`,
+                    }
                   : isDone
-                    ? `0 0 0 2px white, 0 0 6px ${doneColor}`
-                    : "none",
-              }}
+                  ? { width: 9, height: 9, backgroundColor: GREEN, border: `1.5px solid ${GREEN}` }
+                  : { width: 9, height: 9, backgroundColor: "var(--card)", border: `1.5px solid ${GRAY}` }
+              }
             />
-            {hasProblem && (
-              <span className="absolute -bottom-3 text-[10px] leading-none text-[oklch(0.70_0.18_55)]">⚠</span>
+            {isCurrent && !!job.problem && (
+              <span className="absolute top-5 text-[9px] font-medium whitespace-nowrap" style={{ color: RED }}>
+                Problem
+              </span>
             )}
           </div>
         );

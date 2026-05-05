@@ -55,53 +55,53 @@
 :root {
   --radius: 0.5rem;
 
-  /* Druckerei Pfitzer GmbH — Papier, Druckfarbe, Präzision */
-  --background: oklch(0.974 0.006 85);    /* warmes Papierweiss */
-  --foreground: oklch(0.13 0.012 260);    /* Tintenschwarz */
-  --card: oklch(0.999 0 0);
-  --card-foreground: oklch(0.13 0.012 260);
-  --popover: oklch(0.999 0 0);
-  --popover-foreground: oklch(0.13 0.012 260);
+  /* Druckerei Pfitzer GmbH — schlicht, low-fi, harmonisch */
+  --background: oklch(0.952 0.006 240);   /* kühles Schiefergrau — ruhig, professionell */
+  --foreground: oklch(0.16 0.008 255);    /* fast Schwarz, neutral */
+  --card: oklch(1.0 0 0);
+  --card-foreground: oklch(0.16 0.008 255);
+  --popover: oklch(1.0 0 0);
+  --popover-foreground: oklch(0.16 0.008 255);
 
-  --primary: oklch(0.28 0.13 255);        /* Drucktinten-Dunkelblau */
+  --primary: oklch(0.22 0.008 255);       /* fast Schwarz */
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0.005 85);
-  --secondary-foreground: oklch(0.20 0.010 260);
-  --muted: oklch(0.958 0.005 85);
-  --muted-foreground: oklch(0.46 0.012 260);
-  --accent: oklch(0.94 0.008 82);
-  --accent-foreground: oklch(0.20 0.012 260);
-  --destructive: oklch(0.50 0.20 25);
+  --secondary: oklch(0.94 0.003 80);
+  --secondary-foreground: oklch(0.22 0.006 255);
+  --muted: oklch(0.95 0.003 80);
+  --muted-foreground: oklch(0.50 0.006 255);
+  --accent: oklch(0.93 0.004 80);
+  --accent-foreground: oklch(0.22 0.006 255);
+  --destructive: oklch(0.50 0.19 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.89 0.005 85);
-  --input: oklch(0.91 0.005 85);
-  --ring: oklch(0.48 0.12 255);
+  --border: oklch(0.88 0.003 80);
+  --input: oklch(0.91 0.003 80);
+  --ring: oklch(0.40 0.008 255);
 
-  /* Sidebar — Druckertinte, fast Schwarz */
-  --sidebar: oklch(0.13 0.020 260);
-  --sidebar-foreground: oklch(0.88 0.008 250);
-  --sidebar-primary: oklch(0.66 0.19 48);   /* Pfitzer-Orange */
-  --sidebar-primary-foreground: oklch(0.10 0.01 260);
-  --sidebar-accent: oklch(0.19 0.022 260);
-  --sidebar-accent-foreground: oklch(0.90 0.008 250);
-  --sidebar-border: oklch(0.23 0.018 260);
-  --sidebar-ring: oklch(0.66 0.19 48);
+  /* Sidebar — neutral dunkel, hoher Kontrast */
+  --sidebar: oklch(0.16 0.008 255);
+  --sidebar-foreground: oklch(0.96 0.003 255);
+  --sidebar-primary: oklch(0.96 0.003 255);
+  --sidebar-primary-foreground: oklch(0.16 0.008 255);
+  --sidebar-accent: oklch(0.24 0.008 255);
+  --sidebar-accent-foreground: oklch(0.96 0.003 255);
+  --sidebar-border: oklch(0.28 0.008 255);
+  --sidebar-ring: oklch(0.70 0.005 255);
 
-  /* Maschinenfarben — Pantone-ähnlich, satt und eindeutig */
-  --machine-cd:   oklch(0.67 0.20 50);    /* Pantone Orange — CD-Maschine */
-  --machine-rzk:  oklch(0.48 0.20 258);   /* Pantone Blau   — RZK */
-  --machine-sm5:  oklch(0.56 0.18 153);   /* Pantone Grün   — SM5 */
-  --machine-digi: oklch(0.50 0.20 308);   /* Pantone Violett — Digi */
+  /* Maschinenfarben — nur zur Identifikation, gedämpft */
+  --machine-cd:   oklch(0.62 0.16 50);    /* Orange */
+  --machine-rzk:  oklch(0.46 0.15 255);   /* Blau */
+  --machine-sm5:  oklch(0.52 0.14 153);   /* Grün */
+  --machine-digi: oklch(0.48 0.15 308);   /* Violett */
 
   /* Status */
-  --status-ahead:  oklch(0.52 0.17 153);
-  --status-onplan: oklch(0.46 0.16 258);
-  --status-behind: oklch(0.50 0.20 25);
-  --status-warn:   oklch(0.74 0.16 82);
+  --status-ahead:  oklch(0.52 0.15 153);  /* Grün */
+  --status-onplan: oklch(0.46 0.12 255);  /* Blau */
+  --status-behind: oklch(0.50 0.19 25);   /* Rot */
+  --status-warn:   oklch(0.68 0.14 82);
 
-  --glow-blue: 0 0 8px oklch(0.48 0.20 258 / 0.45), 0 0 18px oklch(0.48 0.20 258 / 0.20);
-  --shadow-soft: 0 1px 2px oklch(0.13 0.012 260 / 0.05), 0 4px 16px oklch(0.13 0.012 260 / 0.07);
-  --shadow-drawer: -4px 0 40px oklch(0.13 0.012 260 / 0.16);
+  --glow-blue: none;
+  --shadow-soft: 0 1px 2px oklch(0.16 0.008 255 / 0.05), 0 3px 12px oklch(0.16 0.008 255 / 0.06);
+  --shadow-drawer: -2px 0 24px oklch(0.16 0.008 255 / 0.12);
 }
 
 .dark {
@@ -150,42 +150,30 @@
     box-shadow: var(--shadow-drawer);
   }
 
-  /* Glow dots */
-  .glow-dot {
-    box-shadow: 0 0 12px currentColor, 0 0 24px color-mix(in oklab, currentColor 40%, transparent);
-  }
-  .glow-blue {
-    box-shadow: var(--glow-blue);
-  }
-  .glow-green {
-    box-shadow: 0 0 0 3px white, 0 0 10px oklch(0.72 0.18 145 / 0.85), 0 0 20px oklch(0.72 0.18 145 / 0.4);
-  }
-  .glow-yellow {
-    box-shadow: 0 0 0 3px white, 0 0 10px oklch(0.85 0.17 85 / 0.85), 0 0 20px oklch(0.85 0.17 85 / 0.4);
-  }
-  .glow-red {
-    box-shadow: 0 0 0 3px white, 0 0 10px oklch(0.65 0.22 25 / 0.85), 0 0 20px oklch(0.65 0.22 25 / 0.4);
-  }
-  .ai-card-glow {
-    box-shadow: 0 0 0 1px oklch(0.70 0.14 240 / 0.4), 0 0 18px oklch(0.70 0.14 240 / 0.25);
-  }
+  /* Glow — für low-fi deaktiviert */
+  .glow-dot { box-shadow: none; }
+  .glow-blue { box-shadow: none; }
+  .glow-green { box-shadow: none; }
+  .glow-yellow { box-shadow: none; }
+  .glow-red { box-shadow: none; }
+  .ai-card-glow { box-shadow: none; }
+  .pulse-glow { animation: none; }
+  .pulse-border-red { animation: none; }
 
-  /* Pulse glow for active phase */
-  .pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+  /* Elegantes Pulsieren für verzögerte Aufträge — atmende linke Linie */
+  .pulse-row-behind {
+    animation: pulse-row-behind 2.8s ease-in-out infinite;
+    position: relative;
   }
-  @keyframes pulse-glow {
-    0%, 100% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.15); filter: brightness(1.15); }
-  }
-
-  /* Pulse border red */
-  .pulse-border-red {
-    animation: pulse-border-red 2.2s ease-in-out infinite;
-  }
-  @keyframes pulse-border-red {
-    0%, 100% { box-shadow: 0 0 0 1px oklch(0.65 0.22 25 / 0.5), 0 0 14px oklch(0.65 0.22 25 / 0.2); }
-    50% { box-shadow: 0 0 0 2px oklch(0.65 0.22 25 / 0.8), 0 0 28px oklch(0.65 0.22 25 / 0.5); }
+  @keyframes pulse-row-behind {
+    0%, 100% {
+      box-shadow: inset 3px 0 0 oklch(0.50 0.19 25 / 0.15);
+      background-color: transparent;
+    }
+    50% {
+      box-shadow: inset 3px 0 0 oklch(0.50 0.19 25 / 0.80);
+      background-color: oklch(0.50 0.19 25 / 0.04);
+    }
   }
 
   /* Print shimmer progress bar */

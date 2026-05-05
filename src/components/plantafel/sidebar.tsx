@@ -30,12 +30,12 @@ export function Sidebar({ role, onRoleChange, activeNav, onNavChange }: SidebarP
         </div>
         <div className="leading-tight">
           <div className="text-sm font-semibold tracking-tight">Plantafel</div>
-          <div className="text-[11px] text-sidebar-foreground/60">Digital · Pfitzer</div>
+          <div className="text-[11px] text-sidebar-foreground/80">Digital · Pfitzer</div>
         </div>
       </div>
 
       <div className="px-3 pt-4 pb-2">
-        <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50 px-2 mb-1.5">Rolle</div>
+        <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/85 px-2 mb-1.5">Rolle</div>
         <button
           onClick={() => setOpen(!open)}
           className="w-full flex items-center gap-3 rounded-2xl bg-sidebar-accent hover:bg-sidebar-accent/80 transition px-3 py-2.5 text-left ai-card-glow"
@@ -45,7 +45,7 @@ export function Sidebar({ role, onRoleChange, activeNav, onNavChange }: SidebarP
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">{current.name}</div>
-            <div className="text-[11px] text-sidebar-foreground/60 truncate">{current.person}</div>
+            <div className="text-[11px] text-sidebar-foreground/80 truncate">{current.person}</div>
           </div>
           <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
         </button>
@@ -60,7 +60,7 @@ export function Sidebar({ role, onRoleChange, activeNav, onNavChange }: SidebarP
                 }`}
               >
                 <div className="font-medium">{r.name}</div>
-                <div className="text-[10px] text-sidebar-foreground/55">{r.person}</div>
+                <div className="text-[10px] text-sidebar-foreground/75">{r.person}</div>
               </button>
             ))}
           </div>
@@ -68,7 +68,7 @@ export function Sidebar({ role, onRoleChange, activeNav, onNavChange }: SidebarP
       </div>
 
       <nav className="flex-1 px-3 py-3 space-y-0.5">
-        {current.nav.map((item) => {
+        {current.nav.filter(item => ["Übersicht", "Wochenplan"].includes(item)).map((item) => {
           const Icon = NAV_ICONS[item] ?? LayoutDashboard;
           const active = item === activeNav;
           return (
@@ -77,8 +77,8 @@ export function Sidebar({ role, onRoleChange, activeNav, onNavChange }: SidebarP
               onClick={() => onNavChange(item)}
               className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
                 active
-                  ? "bg-sidebar-accent text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                  : "text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -89,7 +89,7 @@ export function Sidebar({ role, onRoleChange, activeNav, onNavChange }: SidebarP
         })}
       </nav>
 
-      <div className="px-5 py-4 border-t border-sidebar-border text-[11px] text-sidebar-foreground/50">
+      <div className="px-5 py-4 border-t border-sidebar-border text-[11px] text-sidebar-foreground/85">
         Druckerei Pfitzer GmbH
       </div>
     </aside>
