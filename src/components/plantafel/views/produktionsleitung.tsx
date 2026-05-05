@@ -39,12 +39,12 @@ export function ProduktionsleitungView() {
           {/* Header */}
           <header className="flex items-start justify-between">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.20em] text-muted-foreground font-semibold mb-1.5">
+              <div className="text-[10px] uppercase tracking-[0.20em] text-muted-foreground font-medium mb-2">
                 Produktionsleitung · Druckerei Pfitzer GmbH
               </div>
-              <h1 className="editorial-header text-3xl text-foreground">Übersicht — Mittwoch</h1>
-              <div className="mt-3 flex items-baseline gap-7">
-                <KPI value={JOBS.length} label="Aktive Aufträge" />
+              <h1 className="editorial-header text-[2rem] leading-none text-foreground">Übersicht — Mittwoch</h1>
+              <div className="mt-3 flex items-center gap-5">
+                <KPI value={JOBS.length} label="Aufträge" />
                 <KPI value={JOBS.filter(j => j.problem).length} label="Probleme" tone="warn" />
                 <KPI value={JOBS.filter(j => j.status === "Hinterher").length} label="Verzögert" tone="warn" />
                 <KPI value={UPCOMING.length} label="Anstehend" />
@@ -117,7 +117,7 @@ export function ProduktionsleitungView() {
                 ))}
               </div>
             </Panel>
-            <Panel title="Probleme" subtitle="2 aktiv" tone="warn">
+            <Panel title="Probleme" subtitle={`${JOBS.filter(j => j.problem).length} aktiv`} tone="warn">
               <div className="space-y-1.5">
                 {JOBS.filter((j) => j.problem).map((j) => (
                   <div key={j.id} className="flex items-center gap-2 text-xs">
@@ -375,12 +375,13 @@ function Panel({ title, subtitle, children, tone }: { title: string; subtitle?: 
 }
 
 function KPI({ value, label, tone }: { value: number; label: string; tone?: "warn" }) {
+  const colored = tone === "warn" && value > 0;
   return (
-    <div className="flex items-baseline gap-2">
-      <span className={`kpi-numeral text-3xl ${tone === "warn" ? "text-destructive" : "text-foreground"}`}>
+    <div className="flex items-baseline gap-1.5">
+      <span className={`text-base font-semibold tabular-nums ${colored ? "text-destructive" : "text-foreground"}`}>
         {value}
       </span>
-      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</span>
+      <span className="text-[11px] text-muted-foreground">{label}</span>
     </div>
   );
 }
