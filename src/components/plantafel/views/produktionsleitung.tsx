@@ -2,7 +2,6 @@ import { JOBS, UPCOMING, MESSAGES, AI_SUGGESTIONS, MACHINE_META, PHASES, type Jo
 import { PhaseTracker } from "../phase-tracker";
 import { ZeitPill } from "../zeit-pill";
 import { MachineBadge, MachineDot } from "../dots";
-import { BackgroundBlobs } from "../blobs";
 import {
   AlertTriangle, MessageSquare, Sparkles, Check, X, Clock,
   Package, Truck, Layers, FileText, ChevronRight,
@@ -15,14 +14,26 @@ const AI_TONE = [
   { border: "var(--machine-rzk)", bg: "oklch(0.50 0.22 258 / 0.06)", confidence: 3 },
 ];
 
+// Pro Maschine nur 1 Auftrag — Priorität: Hauptdruck > späteste Phase
+const PHASE_PRIORITY = ["Hauptdruck", "Nachbereitung", "Versandfertig", "Vordruck", "Schneiden"];
+const ACTIVE_JOBS: Job[] = Object.values(
+  JOBS.reduce((acc, job) => {
+    const existing = acc[job.machine];
+    if (!existing) { acc[job.machine] = job; return acc; }
+    if (PHASE_PRIORITY.indexOf(job.phase) < PHASE_PRIORITY.indexOf(existing.phase)) {
+      acc[job.machine] = job;
+    }
+    return acc;
+  }, {} as Record<string, Job>)
+);
+
 export function ProduktionsleitungView() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
 
   return (
     <div className="relative">
-      <BackgroundBlobs />
-      <div className="relative p-8 fade-swap">
+      <div className="p-8 fade-swap">
         <div className="space-y-6">
 
           {/* Header */}
@@ -131,53 +142,56 @@ export function ProduktionsleitungView() {
             </Panel>
           </div>
 
-          {/* Unified job table */}
+          {/* Unified job table — 1 Auftrag pro Maschine */}
           <div className="soft-card overflow-hidden">
             {/* Table header */}
-            <div className="grid grid-cols-[4px_220px_1fr_172px] items-center gap-x-5 px-5 py-3 border-b border-border bg-muted/40">
-              <div />
+            <div className="grid grid-cols-[80px_160px_1fr_160px] items-center gap-x-5 px-5 py-3 border-b border-border bg-muted/40">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Maschine</div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">Auftrag</div>
-              <div className="flex items-center justify-between px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <div className="flex items-center justify-between px-2">
                 {PHASES.map((p) => (
-                  <span key={p} className="flex-1 text-center">{p}</span>
+                  <span key={p} className="flex-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    {p}
+                  </span>
                 ))}
               </div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground text-right">Termin</div>
             </div>
 
             <div className="divide-y divide-border">
-              {JOBS.map((j) => {
-                const urgent = j.status === "Hinterher" && !!j.problem;
+              {ACTIVE_JOBS.map((j) => {
+                const isBehind = j.status === "Hinterher";
                 return (
                   <button
                     key={j.id}
                     onClick={() => setSelectedJob(j)}
-                    className={`w-full text-left grid grid-cols-[4px_220px_1fr_172px] items-center gap-x-5 px-5 py-3 transition-colors hover:bg-muted/30 group ${urgent ? "bg-[oklch(0.52_0.22_25/0.03)]" : ""}`}
+                    className={`w-full text-left grid grid-cols-[80px_160px_1fr_160px] items-center gap-x-5 px-5 py-3.5 transition-colors hover:bg-muted/30 group ${isBehind ? "pulse-row-behind" : ""}`}
                   >
-                    {/* machine color strip */}
-                    <div
-                      className="h-9 w-[3px] rounded-full"
-                      style={{ backgroundColor: MACHINE_META[j.machine].color }}
-                    />
-                    {/* order info */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="min-w-0">
+                    {/* Maschinen-Badge */}
+                    <div className="flex flex-col items-start gap-1">
+                      <MachineBadge machine={j.machine} />
+                      {j.phase === "Hauptdruck" ? (
+                        <span className="text-[9px] font-medium" style={{ color: "oklch(0.50 0.16 153)" }}>● läuft</span>
+                      ) : (j.phase === "Schneiden" || j.phase === "Vordruck") ? (
+                        <span className="text-[9px] text-muted-foreground">○ wartet</span>
+                      ) : null}
+                    </div>
+                    {/* Auftragsinfo */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="font-semibold text-sm truncate flex items-center gap-2">
                           {j.customer}
                           {j.openSubsteps > 0 && (
-                            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground shrink-0">
                               {j.openSubsteps}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground font-mono">{j.id}</span>
-                          <MachineBadge machine={j.machine} />
-                        </div>
+                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{j.id}</div>
                       </div>
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0" />
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </div>
-                    {/* phase tracker */}
+                    {/* Phase tracker */}
                     <PhaseTracker job={j} />
                     {/* deadline */}
                     <div className="flex flex-col items-end gap-1.5">
@@ -198,7 +212,6 @@ export function ProduktionsleitungView() {
       {selectedJob && (
         <AuftragDrawer job={selectedJob} onClose={() => setSelectedJob(null)} />
       )}
-
     </div>
   );
 }
@@ -232,7 +245,7 @@ function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
             </button>
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <MachineBadge machine={job.machine} />
+            <span className="text-xs font-semibold" style={{ color: meta.color }}>{job.machine}</span>
             <ZeitPill status={job.status} />
             {job.problem && (
               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-destructive">
