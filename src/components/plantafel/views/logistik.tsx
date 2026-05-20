@@ -47,6 +47,97 @@ export function LogistikView() {
         </div>
       </header>
 
+      {/* Cost Calculator Widget */}
+      {(() => {
+        const urgencyCounts = {
+          high:   sorted.filter(j => j.shipUrgency === "high"   && j.shipStatus !== "Versendet" && j.versandfertigAb).length,
+          medium: sorted.filter(j => j.shipUrgency === "medium" && j.shipStatus !== "Versendet" && j.versandfertigAb).length,
+          low:    sorted.filter(j => j.shipUrgency === "low"    && j.shipStatus !== "Versendet" && j.versandfertigAb).length,
+        };
+        const expressTotal = urgencyCounts.high * 600 + urgencyCounts.medium * 350 + urgencyCounts.low * 200;
+        const totalPending = urgencyCounts.high + urgencyCounts.medium + urgencyCounts.low;
+        return (
+          <div className="soft-card p-4">
+            <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-1">
+              Versandkosten-Risiko
+            </div>
+            <div className={`text-sm font-bold mb-3 ${urgencyCounts.high > 0 ? "text-[oklch(0.50_0.22_25)]" : "text-muted-foreground"}`}>
+              Express-Risiko heute: ~€{expressTotal}
+            </div>
+            {[
+              { key: "high",   label: "EXPRESS",  color: "oklch(0.50 0.22 25)",  cost: "~600€", count: urgencyCounts.high },
+              { key: "medium", label: "Zeitnah",  color: "oklch(0.55 0.17 85)",  cost: "~350€", count: urgencyCounts.medium },
+              { key: "low",    label: "Puffer",   color: "oklch(0.45 0.18 145)", cost: "~200€", count: urgencyCounts.low },
+            ].map(tier => (
+              <div key={tier.key} className="flex items-center gap-2 mb-1.5">
+                <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: tier.color }} />
+                <span className="text-[11px] w-16 shrink-0 font-medium" style={{ color: tier.color }}>{tier.label}</span>
+                <div className="flex-1 h-2 rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${(tier.count / Math.max(totalPending, 1)) * 100}%`, backgroundColor: tier.color }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground w-20 text-right shrink-0 font-mono">{tier.count}× {tier.cost}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Versand-Woche Timeline */}
+      {(() => {
+        const TIMELINE_DAYS = [
+          { key: "20.05.", label: "Mo", date: "20.05." },
+          { key: "21.05.", label: "Di", date: "21.05." },
+          { key: "22.05.", label: "Mi", date: "22.05." },
+          { key: "23.05.", label: "Do", date: "23.05." },
+          { key: "24.05.", label: "Fr", date: "24.05." },
+        ];
+        return (
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-3">
+              Versand-Woche — KW 20
+            </div>
+            <div className="soft-card overflow-hidden">
+              <div className="grid grid-cols-5 divide-x divide-border">
+                {TIMELINE_DAYS.map((day, i) => {
+                  const dayJobs = sorted.filter(j => j.versandfertigAb === day.date && j.shipStatus !== "Versendet");
+                  const shown = dayJobs.slice(0, 2);
+                  const overflow = dayJobs.length - 2;
+                  const isToday = i === 0;
+                  return (
+                    <div key={day.key} className={`p-3 min-h-30 ${isToday ? "bg-[oklch(0.97_0.06_95)]" : ""}`}>
+                      <div className="flex items-center gap-1 mb-2">
+                        <span className="text-[10px] font-bold uppercase">{day.label}</span>
+                        {isToday && <span className="text-[9px] font-semibold text-[oklch(0.50_0.16_85)]">Heute</span>}
+                        {dayJobs.length > 0 && (
+                          <span className="ml-auto rounded-full bg-foreground/10 text-foreground text-[9px] font-bold px-1.5">{dayJobs.length}</span>
+                        )}
+                      </div>
+                      {shown.map(j => (
+                        <div key={j.id} className="rounded-lg border border-border bg-card px-2 py-1.5 mb-1 card-lift">
+                          <div className="text-[10px] font-semibold truncate">{j.customer}</div>
+                          {j.shipUrgency === "high" && <span className="pulse-chip rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-destructive/15 text-destructive">EXPRESS</span>}
+                          {j.shipUrgency === "medium" && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-[oklch(0.85_0.17_85/0.2)] text-[oklch(0.45_0.17_85)]">Bald buchen</span>}
+                          {j.shipUrgency === "low" && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-medium bg-[oklch(0.72_0.18_145/0.15)] text-[oklch(0.40_0.18_145)]">Puffer</span>}
+                        </div>
+                      ))}
+                      {overflow > 0 && (
+                        <div className="text-[9px] text-muted-foreground font-medium">+{overflow} weitere</div>
+                      )}
+                      {dayJobs.length === 0 && (
+                        <div className="text-[9px] text-muted-foreground italic">–</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Cascade conflict — shipping date at risk */}
       {myCascade.map((cc) => {
         const myImpact = cc.affected.find((a) => a.role === "logistik")!;
