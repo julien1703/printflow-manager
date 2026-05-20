@@ -1,13 +1,75 @@
 import { useState } from "react";
-import { JOBS, MACHINE_META } from "@/lib/mock-data";
+import { JOBS, MACHINE_META, PHASES, type Job } from "@/lib/mock-data";
 import { PhaseTracker, PhaseHeader } from "../phase-tracker";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Clock } from "lucide-react";
 
 const KUNDE_STATUS_MAP: Record<string, { label: string; cls: string }> = {
   "Vorzeitig": { label: "Im Plan",   cls: "bg-[oklch(0.72_0.18_145/0.15)] text-[oklch(0.40_0.18_145)]" },
   "Nach Plan": { label: "Im Plan",   cls: "bg-[oklch(0.70_0.14_240/0.15)] text-[oklch(0.45_0.18_245)]" },
   "Hinterher": { label: "Verzögert", cls: "bg-[oklch(0.65_0.22_25/0.15)] text-[oklch(0.50_0.22_25)]" },
 };
+
+function ProjectCard({ job, expanded, onToggle }: { job: Job; expanded: boolean; onToggle: () => void }) {
+  const k = KUNDE_STATUS_MAP[job.status];
+  const color = MACHINE_META[job.machine].color;
+  const phaseIdx = PHASES.indexOf(job.phase);
+
+  return (
+    <div className="card-lift rounded-2xl border bg-card overflow-hidden" onClick={onToggle} style={{ cursor: "pointer" }}>
+      {/* Top color bar */}
+      <div style={{ height: 4, backgroundColor: color }} />
+      <div className="p-4">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <span className="text-[10px] font-mono text-muted-foreground">{job.id}</span>
+          <span className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold shrink-0 ${k.cls}`}>{k.label}</span>
+        </div>
+        {/* Customer + product */}
+        <div className="text-base font-semibold leading-tight mb-0.5">{job.customer}</div>
+        {job.product && <div className="text-xs text-muted-foreground mb-3 truncate">{job.product}</div>}
+
+        {/* 4-segment phase bar */}
+        <div className="flex gap-0.5 mb-1">
+          {PHASES.map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 h-2 rounded-full"
+              style={{
+                backgroundColor:
+                  i < phaseIdx ? "oklch(0.72 0.18 145)" :
+                  i === phaseIdx ? color :
+                  "var(--border)",
+              }}
+            />
+          ))}
+        </div>
+        {/* Phase labels */}
+        <div className="flex text-[8px] text-muted-foreground mb-3">
+          {PHASES.map((p, i) => (
+            <div key={i} className="flex-1 text-center truncate" style={{ color: i === phaseIdx ? color : undefined }}>{p}</div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {job.delivery}
+          </span>
+          <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition ${expanded ? "rotate-180" : ""}`} />
+        </div>
+      </div>
+      {/* Expanded detail */}
+      {expanded && (
+        <div className="border-t border-border bg-muted/20 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Phasen-Verlauf</div>
+          <PhaseHeader />
+          <PhaseTracker job={job} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ProjektmanagerView() {
   const [q, setQ] = useState("");
@@ -54,56 +116,17 @@ export function ProjektmanagerView() {
         </div>
       </div>
 
-      <div className="soft-card soft-card-lg overflow-hidden">
-        {filtered.map((j) => {
-          const k = KUNDE_STATUS_MAP[j.status];
-          const isOpen = expanded === j.id;
-          return (
-            <div key={j.id} className="border-b border-border last:border-0">
-              <div className="grid grid-cols-[1.5fr_1fr_1.5fr_1fr_1fr_auto] items-center gap-4 px-5 py-3.5 hover:bg-muted/30 transition">
-                <div>
-                  <div className="font-semibold text-sm">{j.customer}</div>
-                  <div className="text-[11px] text-muted-foreground">{j.id}</div>
-                </div>
-                <div className="text-xs text-muted-foreground">Kontakt</div>
-                <div>
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-                    style={{
-                      backgroundColor: `color-mix(in oklab, ${MACHINE_META[j.machine].color} 12%, white)`,
-                      color: MACHINE_META[j.machine].color,
-                    }}
-                  >
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: MACHINE_META[j.machine].color, boxShadow: `0 0 8px ${MACHINE_META[j.machine].color}` }}
-                    />
-                    {j.phase}
-                  </span>
-                </div>
-                <div className="text-sm font-medium">{j.delivery}</div>
-                <div>
-                  <span className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold ${k.cls}`}>{k.label}</span>
-                </div>
-                <button
-                  onClick={() => setExpanded(isOpen ? null : j.id)}
-                  className="inline-flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-xs font-medium hover:bg-muted/70"
-                >
-                  Details <ChevronDown className={`h-3 w-3 transition ${isOpen ? "rotate-180" : ""}`} />
-                </button>
-              </div>
-              {isOpen && (
-                <div className="bg-muted/20 px-5 py-4 fade-swap">
-                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Phasen-Verlauf</div>
-                  <PhaseHeader />
-                  <PhaseTracker job={j} />
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-2 gap-4">
+        {filtered.map((j) => (
+          <ProjectCard
+            key={j.id}
+            job={j}
+            expanded={expanded === j.id}
+            onToggle={() => setExpanded(expanded === j.id ? null : j.id)}
+          />
+        ))}
         {filtered.length === 0 && (
-          <div className="p-8 text-center text-sm text-muted-foreground">Keine Treffer.</div>
+          <div className="col-span-2 p-8 text-center text-sm text-muted-foreground">Keine Treffer.</div>
         )}
       </div>
     </div>
