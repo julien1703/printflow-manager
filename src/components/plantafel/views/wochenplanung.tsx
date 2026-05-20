@@ -75,9 +75,7 @@ export function WochenplanungView() {
     setGrid((prev) => {
       const merged: Record<SlotKey, PlacedJob> = { ...prev };
       for (const [key, slot] of Object.entries(plan)) {
-        if (!merged[key]) {
-          merged[key] = slot;
-        }
+        if (!merged[key]) merged[key] = slot;
       }
       return merged;
     });
@@ -98,7 +96,6 @@ export function WochenplanungView() {
     const job = tasche.find((j) => j.id === jobId);
     if (!job) return;
     const key = slotKey(machine, day, slot);
-    // Don't overwrite an occupied slot
     if (grid[key]) return;
     setGrid((prev) => ({
       ...prev,
@@ -135,139 +132,140 @@ export function WochenplanungView() {
   return (
     <div className="flex flex-col fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
       {/* Header */}
-      <div className="px-8 pt-8 pb-4 flex items-start justify-between shrink-0">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-            Produktionsleitung · Wochenplanung
-          </div>
-          <h1 className="editorial-header text-4xl">Wochenplanung</h1>
-          <p className="text-sm text-muted-foreground mt-1.5">
-            KW 20 · 20.–24. Mai 2026 — Aufträge per Drag & Drop planen
-          </p>
+      <div className="px-8 pt-8 pb-5 shrink-0 border-b border-border">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
+          Produktionsleitung · Wochenplanung
         </div>
-        {hasKiSlots && (
-          <button
-            type="button"
-            onClick={confirmKiPlan}
-            className="flex items-center gap-2 rounded-xl bg-foreground text-background px-5 py-2.5 text-sm font-semibold shadow-md hover:opacity-85 transition"
-          >
-            <Check className="h-4 w-4" />
-            Plan bestätigen
-          </button>
-        )}
+        <h1 className="editorial-header text-4xl">Wochenplanung</h1>
+        <p className="text-sm text-muted-foreground mt-1.5">
+          KW 20 · 20.–24. Mai 2026 — Aufträge per Drag & Drop planen
+        </p>
       </div>
 
-      {/* Grid */}
-      <div className="flex-1 overflow-auto px-8 pb-4">
-        <div className="soft-card overflow-hidden">
-          {/* Header row */}
-          <div
-            className="grid border-b border-border bg-muted/40"
-            style={{ gridTemplateColumns: `100px repeat(${WEEKDAYS.length}, 1fr)` }}
-          >
-            <div className="px-3 py-3 text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">
-              Maschine
+      {/* Body: Grid + Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Grid */}
+        <div className="flex-1 overflow-auto p-6">
+          <div className="soft-card overflow-hidden">
+            {/* Header row */}
+            <div
+              className="grid border-b border-border bg-muted/40"
+              style={{ gridTemplateColumns: `90px repeat(${WEEKDAYS.length}, 1fr)` }}
+            >
+              <div className="px-3 py-3 text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground" />
+              {WEEKDAYS.map((d, i) => {
+                const isToday = i === TODAY_INDEX;
+                return (
+                  <div
+                    key={d}
+                    className={`px-3 py-3 text-center border-l border-border ${isToday ? "bg-[oklch(0.95_0.09_95)]" : ""}`}
+                  >
+                    <div className="text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">{d}</div>
+                    {isToday && (
+                      <div className="mt-0.5 text-[10px] font-semibold text-[oklch(0.50_0.16_85)]">Heute</div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            {WEEKDAYS.map((d, i) => {
-              const isToday = i === TODAY_INDEX;
+
+            {ALL_MACHINES.map((machine) => {
+              const color = MACHINE_META[machine].color;
               return (
                 <div
-                  key={d}
-                  className={`px-3 py-3 text-center border-l border-border ${isToday ? "bg-[oklch(0.95_0.09_95)]" : ""}`}
+                  key={machine}
+                  className="grid border-b border-border last:border-0"
+                  style={{ gridTemplateColumns: `90px repeat(${WEEKDAYS.length}, 1fr)` }}
                 >
-                  <div className="text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">
-                    {d}
+                  <div className="flex items-center px-3 py-2 border-r border-border">
+                    <span className="text-sm font-bold" style={{ color }}>{machine}</span>
                   </div>
-                  {isToday && (
-                    <div className="mt-0.5 text-[10px] font-semibold text-[oklch(0.50_0.16_85)]">
-                      Heute
-                    </div>
-                  )}
+                  {WEEKDAYS.map((day, di) => {
+                    const isToday = di === TODAY_INDEX;
+                    return (
+                      <div
+                        key={day}
+                        className={`border-l border-border p-1.5 space-y-1 ${isToday ? "bg-[oklch(0.97_0.06_95)]" : ""}`}
+                      >
+                        {SLOTS.map((slot) => {
+                          const key = slotKey(machine, day, slot);
+                          const placed = grid[key];
+                          return (
+                            <GridSlotCell
+                              key={slot}
+                              slotName={slot}
+                              placed={placed}
+                              color={color}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => handleDrop(e, machine, day, slot)}
+                              onRemove={() => removeFromGrid(key)}
+                            />
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
           </div>
-
-          {/* Machine rows */}
-          {ALL_MACHINES.map((machine) => {
-            const color = MACHINE_META[machine].color;
-            return (
-              <div
-                key={machine}
-                className="grid border-b border-border last:border-0"
-                style={{ gridTemplateColumns: `100px repeat(${WEEKDAYS.length}, 1fr)` }}
-              >
-                <div className="flex items-center px-3 py-2 border-r border-border">
-                  <span className="text-sm font-bold" style={{ color }}>
-                    {machine}
-                  </span>
-                </div>
-                {WEEKDAYS.map((day, di) => {
-                  const isToday = di === TODAY_INDEX;
-                  return (
-                    <div
-                      key={day}
-                      className={`border-l border-border p-1.5 space-y-1 ${isToday ? "bg-[oklch(0.97_0.06_95)]" : ""}`}
-                    >
-                      {SLOTS.map((slot) => {
-                        const key = slotKey(machine, day, slot);
-                        const placed = grid[key];
-                        return (
-                          <GridSlotCell
-                            key={slot}
-                            slotName={slot}
-                            placed={placed}
-                            color={color}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={(e) => handleDrop(e, machine, day, slot)}
-                            onRemove={() => removeFromGrid(key)}
-                          />
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
         </div>
-      </div>
 
-      {/* Auftragstasche */}
-      <div className="shrink-0 border-t border-border bg-card px-8 py-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-[0.16em] font-semibold text-muted-foreground">
-              Auftragstasche
-            </span>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-              {tasche.length} bereit
-            </span>
+        {/* Right sidebar — Auftragstasche */}
+        <div className="w-72 shrink-0 border-l border-border flex flex-col bg-muted/20">
+          {/* Sidebar header */}
+          <div className="px-5 py-4 border-b border-border shrink-0">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-bold uppercase tracking-[0.14em] text-foreground">
+                Auftragstasche
+              </span>
+              <span className="rounded-full bg-foreground text-background px-2 py-0.5 text-[10px] font-bold">
+                {tasche.length}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleKiPlan}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-[oklch(0.55_0.22_258/0.6)] bg-[oklch(0.55_0.22_258/0.06)] px-4 py-2.5 text-xs font-semibold text-[oklch(0.40_0.22_258)] hover:bg-[oklch(0.55_0.22_258/0.14)] transition"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              ✦ KI verplant
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleKiPlan}
-            className="flex items-center gap-2 rounded-xl border border-dashed border-[oklch(0.55_0.22_258/0.6)] bg-[oklch(0.55_0.22_258/0.06)] px-4 py-2 text-xs font-semibold text-[oklch(0.40_0.22_258)] hover:bg-[oklch(0.55_0.22_258/0.12)] transition"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            ✦ KI verplant
-          </button>
-        </div>
-        <div className="flex gap-3 flex-wrap">
-          {tasche.length === 0 && (
-            <div className="text-sm text-muted-foreground italic">Alle Aufträge verplant.</div>
+
+          {/* Cards */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+            {tasche.length === 0 && (
+              <div className="text-center py-8 text-sm text-muted-foreground italic">
+                Alle Aufträge verplant.
+              </div>
+            )}
+            {tasche.map((job) => {
+              const color = MACHINE_META[job.machine].color;
+              return (
+                <TascheCard
+                  key={job.id}
+                  job={job}
+                  color={color}
+                  onDragStart={() => {}}
+                />
+              );
+            })}
+          </div>
+
+          {/* Confirm button */}
+          {hasKiSlots && (
+            <div className="shrink-0 p-4 border-t border-border">
+              <button
+                type="button"
+                onClick={confirmKiPlan}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-foreground text-background px-4 py-2.5 text-sm font-semibold hover:opacity-85 transition shadow-sm"
+              >
+                <Check className="h-4 w-4" />
+                Plan bestätigen
+              </button>
+            </div>
           )}
-          {tasche.map((job) => {
-            const color = MACHINE_META[job.machine].color;
-            return (
-              <TascheCard
-                key={job.id}
-                job={job}
-                color={color}
-                onDragStart={() => {}}
-              />
-            );
-          })}
         </div>
       </div>
     </div>
@@ -275,12 +273,7 @@ export function WochenplanungView() {
 }
 
 function GridSlotCell({
-  slotName,
-  placed,
-  color,
-  onDragOver,
-  onDrop,
-  onRemove,
+  slotName, placed, color, onDragOver, onDrop, onRemove,
 }: {
   slotName: Slot;
   placed: PlacedJob | undefined;
@@ -296,7 +289,9 @@ function GridSlotCell({
         className="relative rounded-lg px-2 py-1.5 group"
         style={{
           backgroundColor: isAi ? "oklch(0.55 0.22 258 / 0.08)" : `color-mix(in oklab, ${color} 10%, white)`,
-          border: isAi ? "1.5px dashed oklch(0.55 0.22 258 / 0.7)" : `2px solid color-mix(in oklab, ${color} 20%, white)`,
+          border: isAi
+            ? "1.5px dashed oklch(0.55 0.22 258 / 0.7)"
+            : `2px solid color-mix(in oklab, ${color} 20%, white)`,
           borderRadius: 8,
         }}
       >
@@ -304,7 +299,7 @@ function GridSlotCell({
           className="text-[9px] uppercase tracking-wider font-semibold mb-0.5"
           style={{ color: isAi ? "oklch(0.40 0.22 258)" : color }}
         >
-          {slotName} {isAi && "· KI"}
+          {slotName}{isAi && " · KI"}
         </div>
         <div className="text-[11px] font-semibold leading-tight truncate">{placed.customer}</div>
         <button
@@ -326,15 +321,13 @@ function GridSlotCell({
       className="rounded-lg border border-dashed border-[oklch(0.82_0.05_240)] bg-[oklch(0.97_0.03_240)] px-2 py-1.5 text-[9px] text-[oklch(0.60_0.08_240)] font-medium hover:border-[oklch(0.65_0.12_240)] hover:bg-[oklch(0.94_0.05_240)] transition"
       style={{ minHeight: 40 }}
     >
-      <span className="opacity-60">{slotName}</span>
+      <span className="opacity-50">{slotName}</span>
     </div>
   );
 }
 
 function TascheCard({
-  job,
-  color,
-  onDragStart,
+  job, color, onDragStart,
 }: {
   job: Job;
   color: string;
@@ -347,21 +340,24 @@ function TascheCard({
         e.dataTransfer.setData("jobId", job.id);
         onDragStart();
       }}
-      className="rounded-xl border px-3 py-2.5 cursor-grab active:cursor-grabbing hover:shadow-md hover:translate-y-[-1px] transition select-none"
+      className="rounded-xl cursor-grab active:cursor-grabbing hover:shadow-md active:opacity-60 transition select-none overflow-hidden"
       style={{
-        borderStyle: "solid",
-        borderWidth: "1px 1px 1px 3px",
-        borderColor: `var(--border) var(--border) var(--border) ${color}`,
-        backgroundColor: `color-mix(in oklab, ${color} 8%, white)`,
-        minWidth: 130,
+        border: `1px solid color-mix(in oklab, ${color} 20%, var(--border))`,
+        backgroundColor: `color-mix(in oklab, ${color} 6%, var(--card))`,
       }}
     >
-      <div className="text-[9px] uppercase tracking-wider font-semibold mb-1" style={{ color }}>
-        {job.machine}
-      </div>
-      <div className="text-sm font-semibold leading-tight">{job.customer}</div>
-      <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
-        {job.id} · {job.delivery}
+      {/* Color bar */}
+      <div className="h-1" style={{ backgroundColor: color }} />
+      <div className="px-3 py-2.5">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color }}>
+            {job.machine}
+          </span>
+          <span className="text-[9px] text-muted-foreground">·</span>
+          <span className="text-[9px] text-muted-foreground font-mono">{job.delivery}</span>
+        </div>
+        <div className="text-sm font-semibold leading-tight">{job.customer}</div>
+        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{job.id}</div>
       </div>
     </div>
   );
