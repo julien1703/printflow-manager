@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phasen-Labels</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f2; padding: 32px; color: #111; }
+  h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 32px; }
+  .options { display: flex; flex-direction: column; gap: 28px; }
+  .option { background: white; border-radius: 14px; padding: 20px 24px; border: 2px solid transparent; cursor: pointer; transition: border-color 0.15s; }
+  .option:hover { border-color: #bbb; }
+  .option-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #aaa; margin-bottom: 12px; }
+  .phases { display: flex; align-items: center; gap: 0; }
+  .phase { flex: 1; text-align: center; padding: 10px 8px; font-size: 11px; font-weight: 600; position: relative; }
+  .phase:not(:last-child)::after { content: '→'; position: absolute; right: -8px; top: 50%; transform: translateY(-50%); color: #ccc; font-size: 12px; z-index: 1; }
+  .phase-box { padding: 8px 4px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+  .active { background: #fff3e8; color: #e07020; }
+  .done { background: #e8f5ec; color: #2a8a4a; }
+  .upcoming { background: #f0f0ee; color: #999; }
+  .description { margin-top: 12px; font-size: 12px; color: #777; line-height: 1.5; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
+  .badge-rec { background: #111; color: white; }
+  .badge-rec::before { content: '✦ '; }
+</style>
+</head>
+<body>
+<h2>Phasen-Labels: Welche 4 Schritte?</h2>
+<p class="subtitle">Jeder Auftrag durchläuft 4 Stufen — wähle die Benennung, die am besten passt.</p>
+
+<div class="options">
+
+  <!-- Option A -->
+  <div class="option">
+    <div class="option-label">Option A — Kurz & technisch</div>
+    <div class="phases">
+      <div class="phase"><div class="phase-box done">Vorstufe</div></div>
+      <div class="phase"><div class="phase-box active">Druck</div></div>
+      <div class="phase"><div class="phase-box upcoming">WV</div></div>
+      <div class="phase"><div class="phase-box upcoming">Versand</div></div>
+    </div>
+    <div class="description">Maximale Kürze. WV = Weiterverarbeitung. Passt gut in enge Kacheln und den Wochenplan.</div>
+  </div>
+
+  <!-- Option B -->
+  <div class="option">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div class="option-label" style="margin-bottom:0">Option B — Ausgeschrieben</div>
+      <span class="badge badge-rec">Empfehlung</span>
+    </div>
+    <div class="phases">
+      <div class="phase"><div class="phase-box done">Vorstufe</div></div>
+      <div class="phase"><div class="phase-box active">Im Druck</div></div>
+      <div class="phase"><div class="phase-box upcoming">Weiterverarbeitung</div></div>
+      <div class="phase"><div class="phase-box upcoming">Versandbereit</div></div>
+    </div>
+    <div class="description">Klarer und selbsterklärend. Etwas länger, aber überall verständlich — auch für neue Mitarbeiter oder die Geschäftsführung.</div>
+  </div>
+
+  <!-- Option C -->
+  <div class="option">
+    <div class="option-label">Option C — Gemischt</div>
+    <div class="phases">
+      <div class="phase"><div class="phase-box done">Vorstufe</div></div>
+      <div class="phase"><div class="phase-box active">Druck</div></div>
+      <div class="phase"><div class="phase-box upcoming">Weiterverarbeitung</div></div>
+      <div class="phase"><div class="phase-box upcoming">Versandbereit</div></div>
+    </div>
+    <div class="description">Kombination: kurze Standardbegriffe + ausgeschriebenes "Weiterverarbeitung" und "Versandbereit" wo Klarheit wichtig ist.</div>
+  </div>
+
+</div>
+</body>
+</html>

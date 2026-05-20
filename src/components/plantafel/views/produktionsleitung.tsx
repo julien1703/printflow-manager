@@ -7,25 +7,40 @@ import { ZeitPill } from "../zeit-pill";
 import { MachineBadge } from "../dots";
 import {
   AlertTriangle, Zap, Clock, Package, Layers, FileText,
-  Truck, X, ChevronRight, TrendingDown,
+  Truck, X, ChevronRight, TrendingDown, ArrowRight,
 } from "lucide-react";
 
 const ALL_MACHINES: Machine[] = ["CD", "RZK", "SM5", "Digi"];
 
+function sortByDelivery(a: Job, b: Job) {
+  const d = (s: string) => { const [day, month] = s.split(".").map(Number); return month * 100 + day; };
+  return d(a.delivery) - d(b.delivery);
+}
+
 function getCurrentJob(machine: Machine): Job | undefined {
   return (
     JOBS.find(
-      (j) =>
-        j.machine === machine &&
+      (j) => j.machine === machine &&
         (j.orderStatus === "In Produktion" || j.orderStatus === "Blockiert")
     ) ??
-    JOBS.find(
-      (j) =>
-        j.machine === machine &&
+    JOBS.filter(
+      (j) => j.machine === machine &&
         j.orderStatus !== "Abgeschlossen" &&
         j.orderStatus !== "Storniert"
-    )
+    ).sort(sortByDelivery)[0]
   );
+}
+
+function getNextJob(machine: Machine, currentId?: string): Job | undefined {
+  return JOBS.filter(
+    (j) =>
+      j.machine === machine &&
+      j.id !== currentId &&
+      j.orderStatus !== "Abgeschlossen" &&
+      j.orderStatus !== "Storniert" &&
+      j.orderStatus !== "In Produktion" &&
+      j.orderStatus !== "Blockiert"
+  ).sort(sortByDelivery)[0];
 }
 
 export function ProduktionsleitungView() {
@@ -33,16 +48,15 @@ export function ProduktionsleitungView() {
 
   const activeJobs = JOBS.filter(
     (j) => j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
-  ).sort((a, b) => {
-    const d = (s: string) => { const [day, month] = s.split(".").map(Number); return month * 100 + day; };
-    return d(a.delivery) - d(b.delivery);
-  });
+  ).sort(sortByDelivery);
 
   const inProduction = JOBS.filter((j) => j.orderStatus === "In Produktion").length;
   const blockedCount = JOBS.filter((j) => j.orderStatus === "Blockiert" || j.cascadeConflict).length;
 
   const missingFreigabe = JOBS.filter(
-    (j) => j.druckfreigabe === "Fehlt" && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
+    (j) => j.druckfreigabe === "Fehlt" &&
+      j.orderStatus !== "Abgeschlossen" &&
+      j.orderStatus !== "Storniert"
   );
 
   return (
@@ -65,7 +79,7 @@ export function ProduktionsleitungView() {
         {/* ── KPI Strip ── */}
         <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
           {[
-            { n: activeJobs.length, label: "Aufträge aktiv", accent: false },
+            { n: activeJobs.length, label: "Aufträge aktiv", accent: false, color: "" },
             { n: inProduction, label: "Im Druck", accent: false, color: "oklch(0.40 0.18 145)" },
             { n: blockedCount, label: "Blockiert", accent: blockedCount > 0, color: "oklch(0.50 0.22 25)" },
             { n: missingFreigabe.length, label: "Freigabe fehlt", accent: missingFreigabe.length > 0, color: "oklch(0.48 0.17 85)" },
@@ -87,92 +101,96 @@ export function ProduktionsleitungView() {
           ))}
         </div>
 
-        <div className="px-8 py-5 space-y-2.5">
+        <div className="px-8 py-5 space-y-5">
 
           {/* ── Alerts ── */}
-          {CASCADE_CONFLICTS.map((cc) => (
-            <div
-              key={cc.triggerId}
-              className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm border"
-              style={{
-                backgroundColor: "oklch(0.65 0.22 25 / 0.05)",
-                borderColor: "oklch(0.65 0.22 25 / 0.22)",
-              }}
-            >
-              <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
-              <div className="flex-1 min-w-0">
-                <span className="font-semibold" style={{ color: "oklch(0.38 0.20 25)" }}>
-                  Kaskaden-Konflikt: {cc.triggerCustomer}
-                </span>
-                <span className="mx-2 text-muted-foreground">·</span>
-                <span className="text-muted-foreground">{cc.reason}</span>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {cc.affected.map((a) => (
-                    <span
-                      key={a.role}
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                      style={{
-                        backgroundColor: a.severity === "high" ? "oklch(0.65 0.22 25 / 0.10)" : "oklch(0.85 0.17 85 / 0.12)",
-                        color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)",
-                      }}
-                    >
-                      {a.actionRequired && <TrendingDown className="h-3 w-3" />}
-                      {a.role
-                        .replace("buchbinderei", "Buchbinderei")
-                        .replace("logistik", "Logistik")
-                        .replace("projektmanager", "PM")}
-                    </span>
-                  ))}
+          <div className="space-y-2">
+            {CASCADE_CONFLICTS.map((cc) => (
+              <div
+                key={cc.triggerId}
+                className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm border"
+                style={{
+                  backgroundColor: "oklch(0.65 0.22 25 / 0.05)",
+                  borderColor: "oklch(0.65 0.22 25 / 0.22)",
+                }}
+              >
+                <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold" style={{ color: "oklch(0.38 0.20 25)" }}>
+                    Kaskaden-Konflikt: {cc.triggerCustomer}
+                  </span>
+                  <span className="mx-2 text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">{cc.reason}</span>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {cc.affected.map((a) => (
+                      <span
+                        key={a.role}
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{
+                          backgroundColor: a.severity === "high" ? "oklch(0.65 0.22 25 / 0.10)" : "oklch(0.85 0.17 85 / 0.12)",
+                          color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)",
+                        }}
+                      >
+                        {a.actionRequired && <TrendingDown className="h-3 w-3" />}
+                        {a.role
+                          .replace("buchbinderei", "Buchbinderei")
+                          .replace("logistik", "Logistik")
+                          .replace("projektmanager", "PM")}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+            {missingFreigabe.length > 0 && (
+              <div
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm border"
+                style={{
+                  backgroundColor: "oklch(0.85 0.17 85 / 0.08)",
+                  borderColor: "oklch(0.78 0.18 85 / 0.25)",
+                }}
+              >
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "oklch(0.52 0.17 85)" }} />
+                <span className="font-semibold" style={{ color: "oklch(0.40 0.16 85)" }}>
+                  {missingFreigabe.length}× Druckfreigabe fehlt:
+                </span>
+                <span className="text-muted-foreground">
+                  {missingFreigabe.map((j) => j.customer).join(" · ")}
+                </span>
+              </div>
+            )}
+          </div>
 
-          {missingFreigabe.length > 0 && (
-            <div
-              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm border"
-              style={{
-                backgroundColor: "oklch(0.85 0.17 85 / 0.08)",
-                borderColor: "oklch(0.78 0.18 85 / 0.25)",
-              }}
-            >
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "oklch(0.52 0.17 85)" }} />
-              <span className="font-semibold" style={{ color: "oklch(0.40 0.16 85)" }}>
-                {missingFreigabe.length}× Druckfreigabe fehlt:
-              </span>
-              <span className="text-muted-foreground">
-                {missingFreigabe.map((j) => j.customer).join(" · ")}
-              </span>
-            </div>
-          )}
-
-          {/* ── Machine Tiles ── */}
-          <div className="grid grid-cols-4 gap-3 pt-1">
+          {/* ── Machine Cards 2×2 ── */}
+          <div className="grid grid-cols-2 gap-4">
             {ALL_MACHINES.map((machine) => {
-              const job = getCurrentJob(machine);
+              const currentJob = getCurrentJob(machine);
+              const nextJob = getNextJob(machine, currentJob?.id);
               const color = MACHINE_META[machine].color;
-              const status: "Läuft" | "Bereit" | "Blockiert" = !job
+              const status: "Läuft" | "Bereit" | "Blockiert" = !currentJob
                 ? "Bereit"
-                : job.cascadeConflict || job.orderStatus === "Blockiert"
+                : currentJob.cascadeConflict || currentJob.orderStatus === "Blockiert"
                 ? "Blockiert"
-                : job.orderStatus === "In Produktion"
+                : currentJob.orderStatus === "In Produktion"
                 ? "Läuft"
                 : "Bereit";
               return (
                 <MachineKachel
                   key={machine}
                   machine={machine}
-                  job={job}
+                  currentJob={currentJob}
+                  nextJob={nextJob}
                   status={status}
                   color={color}
-                  onClick={job ? () => setSelectedJob(job) : undefined}
+                  onClickCurrent={currentJob ? () => setSelectedJob(currentJob) : undefined}
+                  onClickNext={nextJob ? () => setSelectedJob(nextJob) : undefined}
                 />
               );
             })}
           </div>
 
-          {/* ── Job List ── */}
-          <div className="pt-3">
+          {/* ── Compact job list ── */}
+          <div>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
                 Alle aktiven Aufträge
@@ -243,13 +261,15 @@ export function ProduktionsleitungView() {
 }
 
 function MachineKachel({
-  machine, job, status, color, onClick,
+  machine, currentJob, nextJob, status, color, onClickCurrent, onClickNext,
 }: {
   machine: Machine;
-  job: Job | undefined;
+  currentJob: Job | undefined;
+  nextJob: Job | undefined;
   status: "Läuft" | "Bereit" | "Blockiert";
   color: string;
-  onClick?: () => void;
+  onClickCurrent?: () => void;
+  onClickNext?: () => void;
 }) {
   const isBlocked = status === "Blockiert";
   const isRunning = status === "Läuft";
@@ -267,73 +287,103 @@ function MachineKachel({
     : "none";
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={!onClick}
-      className={`w-full text-left rounded-2xl overflow-hidden border transition ${
-        onClick ? "hover:shadow-md hover:-translate-y-[1px]" : "cursor-default"
-      }`}
+    <div
+      className="rounded-2xl overflow-hidden border"
       style={{
         borderColor: isBlocked ? "oklch(0.65 0.22 25 / 0.28)" : "var(--border)",
-        backgroundColor: isBlocked ? "oklch(0.65 0.22 25 / 0.04)" : "var(--card)",
+        backgroundColor: isBlocked ? "oklch(0.65 0.22 25 / 0.03)" : "var(--card)",
       }}
     >
       {/* Top color bar */}
       <div style={{ height: 3, backgroundColor: color }} />
 
       <div className="p-5">
-        {/* Machine name + status dot */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-2xl font-black tracking-tight leading-none" style={{ color }}>
-            {machine}
-          </span>
+        {/* Machine name + status */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-black tracking-tight leading-none" style={{ color }}>
+              {machine}
+            </span>
+            <span
+              className="text-[10px] uppercase tracking-[0.12em] font-bold"
+              style={{
+                color: isBlocked ? "oklch(0.50 0.22 25)" : isRunning ? "oklch(0.45 0.18 145)" : "var(--muted-foreground)",
+              }}
+            >
+              {status}
+            </span>
+          </div>
           <div
-            className="h-2.5 w-2.5 rounded-full shrink-0"
+            className="h-2.5 w-2.5 rounded-full"
             style={{ backgroundColor: dotColor, boxShadow: dotShadow }}
           />
         </div>
 
-        {job ? (
-          <>
-            <div className="text-sm font-semibold leading-tight truncate mb-2">
-              {job.customer}
+        {/* Current job */}
+        {currentJob ? (
+          <button
+            type="button"
+            onClick={onClickCurrent}
+            className="w-full text-left rounded-xl p-4 mb-3 transition hover:brightness-95 active:scale-[0.99]"
+            style={{
+              backgroundColor: isBlocked
+                ? "oklch(0.65 0.22 25 / 0.08)"
+                : `color-mix(in oklab, ${color} 7%, var(--background))`,
+              border: `1px solid ${isBlocked ? "oklch(0.65 0.22 25 / 0.20)" : `color-mix(in oklab, ${color} 18%, var(--border))`}`,
+            }}
+          >
+            <div className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-1.5"
+              style={{ color: isBlocked ? "oklch(0.50 0.22 25)" : color }}>
+              Jetzt
             </div>
+            <div className="text-base font-bold leading-tight mb-2">{currentJob.customer}</div>
             <div className="flex items-center gap-2 flex-wrap">
               <span
                 className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
                 style={{
-                  backgroundColor: `color-mix(in oklab, ${color} 12%, white)`,
-                  color,
+                  backgroundColor: isBlocked
+                    ? "oklch(0.65 0.22 25 / 0.15)"
+                    : `color-mix(in oklab, ${color} 15%, white)`,
+                  color: isBlocked ? "oklch(0.40 0.20 25)" : color,
                 }}
               >
-                {job.phase}
+                {currentJob.phase}
               </span>
-              {isBlocked && job.problem && (
-                <span className="text-[10px] truncate max-w-[100px]" style={{ color: "oklch(0.50 0.22 25)" }}>
-                  {job.problem.split("—")[0].trim()}
+              <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {currentJob.delivery}
+              </span>
+              {isBlocked && currentJob.problem && (
+                <span className="text-[10px] font-medium" style={{ color: "oklch(0.50 0.22 25)" }}>
+                  {currentJob.problem.split("—")[0].trim()}
                 </span>
               )}
             </div>
-          </>
+          </button>
         ) : (
-          <div className="text-sm text-muted-foreground">Kein Auftrag</div>
+          <div className="rounded-xl p-4 mb-3 border border-dashed border-border">
+            <div className="text-[9px] uppercase tracking-[0.14em] font-semibold text-muted-foreground mb-1">Jetzt</div>
+            <div className="text-sm text-muted-foreground">Kein aktiver Auftrag</div>
+          </div>
         )}
 
-        <div
-          className="mt-3 text-[9px] uppercase tracking-[0.14em] font-bold"
-          style={{
-            color: isBlocked
-              ? "oklch(0.50 0.22 25)"
-              : isRunning
-              ? "oklch(0.45 0.18 145)"
-              : "var(--muted-foreground)",
-          }}
-        >
-          {status}
-        </div>
+        {/* Next job */}
+        {nextJob && (
+          <button
+            type="button"
+            onClick={onClickNext}
+            className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg border border-dashed border-border bg-muted/30 hover:bg-muted/50 transition"
+          >
+            <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[9px] uppercase tracking-[0.12em] font-semibold text-muted-foreground mb-0.5">Nächster</div>
+              <div className="text-xs font-semibold truncate">{nextJob.customer}</div>
+            </div>
+            <div className="text-[10px] text-muted-foreground font-mono shrink-0">{nextJob.delivery}</div>
+          </button>
+        )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -383,7 +433,6 @@ function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
           </div>
         </div>
 
-        {/* Phase progress */}
         <div className="px-7 py-5 border-b border-border">
           <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-3">
             Produktionsfortschritt
@@ -495,9 +544,7 @@ function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
 }
 
 function Section({
-  icon,
-  title,
-  children,
+  icon, title, children,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -515,9 +562,7 @@ function Section({
 }
 
 function Row({
-  label,
-  value,
-  mono,
+  label, value, mono,
 }: {
   label: string;
   value: React.ReactNode;

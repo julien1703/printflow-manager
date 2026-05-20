@@ -2,6 +2,9 @@
   "permissions": {
     "additionalDirectories": [
       "/Users/julienoffray/Documents/HFG/7Semester/BA-Druckerei/Prototype1/src/lib"
+    ],
+    "allow": [
+      "Bash(npx tsc *)"
     ]
   }
 }
