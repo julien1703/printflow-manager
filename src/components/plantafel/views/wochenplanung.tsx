@@ -238,7 +238,7 @@ export function WochenplanungView() {
             className="flex items-center gap-2 rounded-xl border border-dashed border-[oklch(0.55_0.22_258/0.6)] bg-[oklch(0.55_0.22_258/0.06)] px-4 py-2 text-xs font-semibold text-[oklch(0.40_0.22_258)] hover:bg-[oklch(0.55_0.22_258/0.12)] transition"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            KI verplant
+            ✦ KI verplant
           </button>
         </div>
         <div className="flex gap-3 flex-wrap">
