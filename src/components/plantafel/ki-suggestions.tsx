@@ -61,7 +61,7 @@ interface KISuggestionsPanelProps {
   context?: string;
 }
 
-export function KISuggestionsPanel({ role }: KISuggestionsPanelProps) {
+export function KISuggestionsPanel({ role, context }: KISuggestionsPanelProps) {
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const [showReason, setShowReason] = useState(false);
@@ -174,6 +174,11 @@ export function KISuggestionsPanel({ role }: KISuggestionsPanelProps) {
             </div>
             <ConfidenceDots avg={avgConfidence} />
           </div>
+          {context && (
+            <div style={{ padding: "6px 16px", fontSize: 10, color: "oklch(0.50 0.006 255)" }}>
+              Kontext: {context}
+            </div>
+          )}
 
           {/* Body */}
           <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
