@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   WEEK_PLAN, WEEKDAYS, SLOTS, TODAY_INDEX,
   MACHINE_META, Machine, WeekSlot, JOBS, CURRENT_PM, RoleKey,
@@ -9,11 +8,9 @@ const ALL_MACHINES: Machine[] = ["CD", "RZK", "SM5", "Digi"];
 
 interface Props {
   role: RoleKey;
-  /** assigned machine for Drucker view */
-  druckerMachine?: Machine;
 }
 
-export function Wochenplan({ role, druckerMachine = "CD" }: Props) {
+export function Wochenplan({ role }: Props) {
   const subtitle = SUBTITLES[role];
 
   // Decide which slots are "in focus" vs greyed out
@@ -25,16 +22,17 @@ export function Wochenplan({ role, druckerMachine = "CD" }: Props) {
       case "projektmanager":
         return s.ownerPM === CURRENT_PM;
       case "buchbinderei":
-        return s.phase === "Nachbereitung" || s.phase === "Versandfertig";
+        return s.phase === "Weiterverarbeitung" || s.phase === "Versandbereit";
       case "logistik":
-        return s.phase === "Versandfertig";
-      case "drucker":
-        return s.machine === druckerMachine;
+        return s.phase === "Versandbereit";
+      case "druckvorstufe":
+        return s.phase === "Vorstufe";
+      case "geschaeftsfuehrung":
+        return true;
     }
   };
 
-  const machinesShown: Machine[] =
-    role === "drucker" ? [druckerMachine] : ALL_MACHINES;
+  const machinesShown: Machine[] = ALL_MACHINES;
 
   return (
     <div className="relative p-8 fade-swap">
@@ -140,7 +138,7 @@ export function Wochenplan({ role, druckerMachine = "CD" }: Props) {
           <span className="h-2 w-2 rounded-full bg-[oklch(0.85_0.05_240)]" />
           Frei
         </span>
-        {role !== "produktionsleitung" && role !== "drucker" && (
+        {role !== "produktionsleitung" && role !== "geschaeftsfuehrung" && (
           <span>Aufträge außerhalb deines Fokus sind ausgegraut.</span>
         )}
       </div>
@@ -228,9 +226,10 @@ function SlotCard({ slot, focus }: { slot: WeekSlot; focus: boolean }) {
 }
 
 const SUBTITLES: Record<RoleKey, string> = {
-  produktionsleitung: "Vollständige Wochenübersicht — alle Maschinen, alle Aufträge, Früh- und Spätschicht.",
-  projektmanager: "Deine Kundenaufträge sind farbig markiert. Andere Aufträge zeigen den Maschinen-Kontext.",
-  buchbinderei: "Aufträge, die diese Woche Nachbereitung oder Versandfertigung erreichen.",
-  logistik: "Aufträge, die diese Woche versandfertig werden.",
-  drucker: "Deine zugeteilte Maschine — Schichtplan für die ganze Woche.",
+  produktionsleitung:  "Vollständige Wochenübersicht — alle Maschinen, alle Aufträge, Früh- und Spätschicht.",
+  projektmanager:      "Deine Kundenaufträge sind farbig markiert. Andere Aufträge zeigen den Maschinen-Kontext.",
+  druckvorstufe:       "Aufträge in Vorstufe — Freigabe-relevante Slots hervorgehoben.",
+  buchbinderei:        "Aufträge, die diese Woche Weiterverarbeitung oder Versandbereitschaft erreichen.",
+  logistik:            "Aufträge, die diese Woche versandbereit werden.",
+  geschaeftsfuehrung:  "Vollständige Wochenübersicht — alle Maschinen und Aufträge.",
 };
