@@ -1,13 +1,14 @@
 import { useState } from "react";
 import {
-  JOBS, MACHINE_META, PHASES, CASCADE_CONFLICTS,
+  JOBS, MACHINE_META, PHASES, CASCADE_CONFLICTS, LIVE_PRINT,
   type Job, type Machine,
 } from "@/lib/mock-data";
 import { ZeitPill } from "../zeit-pill";
 import { MachineBadge } from "../dots";
+import { KISuggestionsPanel } from "@/components/plantafel/ki-suggestions";
 import {
   AlertTriangle, Zap, Clock, Package, Layers, FileText,
-  Truck, X, ChevronRight, TrendingDown, ArrowRight,
+  Truck, X, ChevronRight, TrendingDown, ArrowRight, ChevronDown, ChevronUp,
 } from "lucide-react";
 
 const ALL_MACHINES: Machine[] = ["CD", "RZK", "SM5", "Digi"];
@@ -43,8 +44,49 @@ function getNextJob(machine: Machine, currentId?: string): Job | undefined {
   ).sort(sortByDelivery)[0];
 }
 
+/* ── Mini-Gantt strip ── */
+function MiniGanttStrip() {
+  return (
+    <div className="max-w-55 flex flex-col gap-1.5">
+      {ALL_MACHINES.map((machine) => {
+        const lp = LIVE_PRINT.find((p) => p.machine === machine);
+        const color = MACHINE_META[machine].color;
+        return (
+          <div key={machine} className="flex items-center gap-1.5">
+            <div
+              className="shrink-0 font-bold text-[9px] leading-none"
+              style={{ width: 24, color }}
+            >
+              {machine}
+            </div>
+            <div className="flex-1 h-2 rounded-full overflow-hidden bg-border/40">
+              {lp ? (
+                <div
+                  className="h-full rounded-full shimmer-bar"
+                  style={{ width: `${lp.progress}%`, backgroundColor: color }}
+                />
+              ) : (
+                <div className="h-full rounded-full bg-border/60" style={{ width: "100%" }} />
+              )}
+            </div>
+            {lp ? (
+              <div className="text-[9px] text-muted-foreground font-mono shrink-0 w-9.5 text-right">
+                ~{lp.finishInMin}min
+              </div>
+            ) : (
+              <div className="w-9.5" />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ProduktionsleitungView() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   const activeJobs = JOBS.filter(
     (j) => j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
@@ -59,6 +101,19 @@ export function ProduktionsleitungView() {
       j.orderStatus !== "Storniert"
   );
 
+  function toggleAlert(id: string) {
+    setExpandedAlerts((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleJob(id: string) {
+    setExpandedJobId((prev) => (prev === id ? null : id));
+  }
+
   return (
     <div className="relative">
       <div className="fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
@@ -68,25 +123,35 @@ export function ProduktionsleitungView() {
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2.5">
             Produktionsleitung · G. Maisch
           </div>
-          <div className="flex items-baseline gap-5">
-            <h1 className="editorial-header leading-none" style={{ fontSize: "clamp(2.8rem, 5vw, 4rem)" }}>
-              Montag
-            </h1>
-            <span className="text-sm text-muted-foreground font-mono">20. Mai 2026 · KW 20</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-baseline gap-5">
+              <h1 className="editorial-header leading-none" style={{ fontSize: "clamp(2.8rem, 5vw, 4rem)" }}>
+                Montag
+              </h1>
+              <span className="text-sm text-muted-foreground font-mono">20. Mai 2026 · KW 20</span>
+            </div>
+            <MiniGanttStrip />
           </div>
         </div>
 
         {/* ── KPI Strip ── */}
         <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
           {[
-            { n: activeJobs.length, label: "Aufträge aktiv", accent: false, color: "" },
+            { n: activeJobs.length, label: "Aufträge aktiv", accent: false, color: "oklch(0.55 0.008 255)" },
             { n: inProduction, label: "Im Druck", accent: false, color: "oklch(0.40 0.18 145)" },
             { n: blockedCount, label: "Blockiert", accent: blockedCount > 0, color: "oklch(0.50 0.22 25)" },
-            { n: missingFreigabe.length, label: "Freigabe fehlt", accent: missingFreigabe.length > 0, color: "oklch(0.48 0.17 85)" },
+            { n: missingFreigabe.length, label: "Freigabe fehlt", accent: missingFreigabe.length > 0, color: "oklch(0.55 0.17 85)" },
           ].map((s, i) => (
-            <div key={i} className="px-8 py-6">
+            <div
+              key={i}
+              className={[
+                "px-8 py-6",
+                i === 2 && blockedCount > 0 ? "border-l-[3px] border-l-[oklch(0.50_0.22_25)]" : "",
+                i === 3 && missingFreigabe.length > 0 ? "border-l-[3px] border-l-[oklch(0.55_0.17_85)]" : "",
+              ].join(" ")}
+            >
               <div
-                className="font-black tabular-nums leading-none"
+                className="number-display font-black tabular-nums leading-none"
                 style={{
                   fontSize: "clamp(2.2rem, 3.5vw, 3rem)",
                   color: s.accent ? s.color : "var(--foreground)",
@@ -94,6 +159,10 @@ export function ProduktionsleitungView() {
               >
                 {s.n}
               </div>
+              <div
+                className="mt-2 h-0.5 w-8 rounded-full"
+                style={{ backgroundColor: s.color }}
+              />
               <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-semibold mt-2">
                 {s.label}
               </div>
@@ -105,43 +174,100 @@ export function ProduktionsleitungView() {
 
           {/* ── Alerts ── */}
           <div className="space-y-2">
-            {CASCADE_CONFLICTS.map((cc) => (
-              <div
-                key={cc.triggerId}
-                className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm border"
-                style={{
-                  backgroundColor: "oklch(0.65 0.22 25 / 0.05)",
-                  borderColor: "oklch(0.65 0.22 25 / 0.22)",
-                }}
-              >
-                <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
-                <div className="flex-1 min-w-0">
-                  <span className="font-semibold" style={{ color: "oklch(0.38 0.20 25)" }}>
-                    Kaskaden-Konflikt: {cc.triggerCustomer}
-                  </span>
-                  <span className="mx-2 text-muted-foreground">·</span>
-                  <span className="text-muted-foreground">{cc.reason}</span>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {cc.affected.map((a) => (
-                      <span
-                        key={a.role}
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                        style={{
-                          backgroundColor: a.severity === "high" ? "oklch(0.65 0.22 25 / 0.10)" : "oklch(0.85 0.17 85 / 0.12)",
-                          color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)",
-                        }}
-                      >
-                        {a.actionRequired && <TrendingDown className="h-3 w-3" />}
-                        {a.role
-                          .replace("buchbinderei", "Buchbinderei")
-                          .replace("logistik", "Logistik")
-                          .replace("projektmanager", "PM")}
+            {CASCADE_CONFLICTS.map((cc) => {
+              const isExpanded = expandedAlerts.has(cc.triggerId);
+              return (
+                <div
+                  key={cc.triggerId}
+                  className="rounded-xl border cursor-pointer"
+                  style={{
+                    backgroundColor: "oklch(0.65 0.22 25 / 0.05)",
+                    borderColor: "oklch(0.65 0.22 25 / 0.22)",
+                  }}
+                  onClick={() => toggleAlert(cc.triggerId)}
+                >
+                  {/* Collapsed header row */}
+                  <div className="flex items-start gap-3 px-4 py-3 text-sm">
+                    <Zap className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-semibold" style={{ color: "oklch(0.38 0.20 25)" }}>
+                        Kaskaden-Konflikt: {cc.triggerCustomer}
                       </span>
-                    ))}
+                      <span className="mx-2 text-muted-foreground">·</span>
+                      <span className="text-muted-foreground">{cc.reason}</span>
+                      {!isExpanded && (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {cc.affected.map((a) => (
+                            <span
+                              key={a.role}
+                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                              style={{
+                                backgroundColor: a.severity === "high" ? "oklch(0.65 0.22 25 / 0.10)" : "oklch(0.85 0.17 85 / 0.12)",
+                                color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)",
+                              }}
+                            >
+                              {a.actionRequired && <TrendingDown className="h-3 w-3" />}
+                              {a.role
+                                .replace("buchbinderei", "Buchbinderei")
+                                .replace("logistik", "Logistik")
+                                .replace("projektmanager", "PM")}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-muted-foreground mt-0.5">
+                      {isExpanded
+                        ? <ChevronUp className="h-3.5 w-3.5" />
+                        : <ChevronDown className="h-3.5 w-3.5" />
+                      }
+                    </div>
                   </div>
+
+                  {/* Expanded detail */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
+                      {/* Timeline of affected roles */}
+                      <div className="flex flex-col gap-2 mb-4">
+                        {cc.affected.map((a) => (
+                          <div key={a.role} className="flex items-start gap-3">
+                            <div
+                              className="mt-1 h-2 w-2 rounded-full shrink-0"
+                              style={{
+                                backgroundColor: a.severity === "high"
+                                  ? "oklch(0.50 0.22 25)"
+                                  : a.severity === "medium"
+                                  ? "oklch(0.55 0.17 85)"
+                                  : "oklch(0.60 0.04 255)",
+                              }}
+                            />
+                            <div>
+                              <span
+                                className="text-[11px] font-semibold"
+                                style={{
+                                  color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)",
+                                }}
+                              >
+                                {a.role
+                                  .replace("buchbinderei", "Buchbinderei")
+                                  .replace("logistik", "Logistik")
+                                  .replace("projektmanager", "Projektmanager")}
+                              </span>
+                              <span className="mx-1.5 text-muted-foreground text-[11px]">·</span>
+                              <span className="text-[11px] text-muted-foreground">{a.impact}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* KI-Vorschlag button */}
+                      <div className="flex justify-end">
+                        <KISuggestionsPanel role="produktionsleitung" context={cc.reason} />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {missingFreigabe.length > 0 && (
               <div
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm border"
@@ -204,46 +330,74 @@ export function ProduktionsleitungView() {
                 {activeJobs.map((j) => {
                   const color = MACHINE_META[j.machine].color;
                   const phaseIdx = PHASES.indexOf(j.phase);
+                  const isExpanded = expandedJobId === j.id;
                   return (
-                    <button
-                      key={j.id}
-                      onClick={() => setSelectedJob(j)}
-                      className="w-full flex items-center gap-4 px-5 py-3 hover:bg-muted/30 transition group text-left"
-                      style={j.cascadeConflict ? { backgroundColor: "oklch(0.65 0.22 25 / 0.03)" } : undefined}
-                    >
-                      <MachineBadge machine={j.machine} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold truncate">{j.customer}</span>
-                          {j.cascadeConflict && (
-                            <span className="text-[10px] font-semibold text-destructive shrink-0">⚠ Konflikt</span>
+                    <div key={j.id}>
+                      <button
+                        onClick={() => toggleJob(j.id)}
+                        className="card-lift w-full flex items-center gap-4 px-5 py-3 hover:bg-muted/30 transition group text-left"
+                        style={j.cascadeConflict ? { backgroundColor: "oklch(0.65 0.22 25 / 0.03)" } : undefined}
+                      >
+                        <MachineBadge machine={j.machine} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold truncate">{j.customer}</span>
+                            {j.cascadeConflict && (
+                              <span className="pulse-chip inline-flex items-center gap-0.5 text-[10px] font-semibold text-destructive shrink-0">
+                                <Zap className="h-3 w-3" />
+                                Konflikt
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground font-mono">{j.id}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {PHASES.map((_, i) => (
+                            <div
+                              key={i}
+                              className="h-1.5 w-5 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  i < phaseIdx
+                                    ? "oklch(0.72 0.18 145)"
+                                    : i === phaseIdx
+                                    ? j.cascadeConflict ? "oklch(0.50 0.22 25)" : color
+                                    : "var(--border)",
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 text-[11px] text-muted-foreground font-mono">
+                          <Clock className="h-3 w-3" />
+                          {j.delivery}
+                        </div>
+                        <ZeitPill status={j.status} />
+                        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                      </button>
+                      {isExpanded && (
+                        <div className="w-full flex items-center gap-3 px-5 pb-3 text-[10px] text-muted-foreground border-t border-border/50 pt-2">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Liefertermin: <span className="font-mono font-medium text-foreground">{j.delivery}</span>
+                          </span>
+                          <span
+                            className="rounded-full px-2 py-0.5 font-medium text-[10px]"
+                            style={{
+                              backgroundColor: `color-mix(in oklab, ${color} 12%, var(--background))`,
+                              color,
+                            }}
+                          >
+                            {j.phase}
+                          </span>
+                          {j.finishingHours !== undefined && j.finishingHours > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              WV: <span className="font-mono font-medium text-foreground">{j.finishingHours}h</span>
+                            </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-muted-foreground font-mono">{j.id}</span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {PHASES.map((_, i) => (
-                          <div
-                            key={i}
-                            className="h-1.5 w-5 rounded-full"
-                            style={{
-                              backgroundColor:
-                                i < phaseIdx
-                                  ? "oklch(0.72 0.18 145)"
-                                  : i === phaseIdx
-                                  ? j.cascadeConflict ? "oklch(0.50 0.22 25)" : color
-                                  : "var(--border)",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 text-[11px] text-muted-foreground font-mono">
-                        <Clock className="h-3 w-3" />
-                        {j.delivery}
-                      </div>
-                      <ZeitPill status={j.status} />
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
-                    </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -286,6 +440,8 @@ function MachineKachel({
     ? "0 0 0 4px oklch(0.52 0.20 145 / 0.18)"
     : "none";
 
+  const livePrint = LIVE_PRINT.find((lp) => lp.machine === machine);
+
   return (
     <div
       className="rounded-2xl overflow-hidden border"
@@ -314,7 +470,7 @@ function MachineKachel({
             </span>
           </div>
           <div
-            className="h-2.5 w-2.5 rounded-full"
+            className={`h-2.5 w-2.5 rounded-full${isRunning ? " pulse-chip" : ""}`}
             style={{ backgroundColor: dotColor, boxShadow: dotShadow }}
           />
         </div>
@@ -337,7 +493,19 @@ function MachineKachel({
               Jetzt
             </div>
             <div className="text-base font-bold leading-tight mb-2">{currentJob.customer}</div>
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Progress bar for running jobs */}
+            {isRunning && livePrint && (
+              <>
+                <div className="mt-2 h-1 rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full shimmer-bar"
+                    style={{ width: `${livePrint.progress}%`, backgroundColor: color }}
+                  />
+                </div>
+                <div className="text-[9px] text-muted-foreground mt-0.5 font-mono">~{livePrint.finishInMin} min</div>
+              </>
+            )}
+            <div className="flex items-center gap-2 flex-wrap mt-2">
               <span
                 className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
                 style={{
@@ -394,7 +562,7 @@ function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 bg-foreground/10 backdrop-blur-[2px] z-40" onClick={onClose} />
-      <div className="fixed right-0 top-0 h-full w-[440px] bg-card drawer-panel z-50 overflow-y-auto flex flex-col">
+      <div className="fixed right-0 top-0 h-full w-110 bg-card drawer-panel z-50 overflow-y-auto flex flex-col">
         <div
           className="px-7 pt-7 pb-5 border-b border-border"
           style={{ borderTopWidth: 3, borderTopColor: meta.color }}
@@ -482,7 +650,7 @@ function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
                       job.shipStatus === "Versendet"
                         ? "text-[oklch(0.45_0.18_145)]"
                         : job.shipStatus === "Gebucht"
-                        ? "text-[var(--machine-rzk)]"
+                        ? "text-machine-rzk"
                         : "text-muted-foreground"
                     }`}
                   >
@@ -502,7 +670,7 @@ function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
                         ? "text-[oklch(0.45_0.18_145)]"
                         : job.druckfreigabe === "Fehlt"
                         ? "text-destructive"
-                        : "text-[var(--machine-cd)]"
+                        : "text-machine-cd"
                     }`}
                   >
                     {job.druckfreigabe}
