@@ -134,15 +134,6 @@ interface TopBarProps {
   onRoleChange: (r: RoleKey) => void;
 }
 
-const TOPBAR_ROLE_COLORS: Record<RoleKey, string> = {
-  produktionsleitung: "oklch(0.62 0.16 50)",
-  buchbinderei:       "oklch(0.52 0.14 153)",
-  logistik:           "oklch(0.46 0.15 255)",
-  druckvorstufe:      "oklch(0.48 0.15 308)",
-  projektmanager:     "oklch(0.55 0.10 255)",
-  geschaeftsfuehrung: "oklch(0.22 0.008 255)",
-};
-
 export function TopBar({ role, onRoleChange }: TopBarProps) {
   const [bellOpen, setBellOpen] = useState(false);
   const now = new Date();
@@ -195,7 +186,7 @@ export function TopBar({ role, onRoleChange }: TopBarProps) {
       <div className="flex items-center gap-1 px-4 pb-2.5 overflow-x-auto">
         {ROLES.map((r) => {
           const active = r.key === role;
-          const dotColor = TOPBAR_ROLE_COLORS[r.key];
+          const dotColor = ROLE_COLORS[r.key];
           return (
             <button
               key={r.key}
