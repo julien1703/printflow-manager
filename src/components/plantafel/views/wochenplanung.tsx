@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  JOBS, MACHINE_META, PHASES, WEEKDAYS, SLOTS,
+  JOBS, MACHINE_META, WEEKDAYS, SLOTS,
   TODAY_INDEX,
   type Job, type Machine, type Phase, type Weekday, type Slot,
 } from "@/lib/mock-data";
@@ -34,7 +34,10 @@ const TASCHE_JOBS: Job[] = JOBS.filter(
 function buildKiPlan(jobs: Job[]): Record<SlotKey, PlacedJob> {
   const plan: Record<SlotKey, PlacedJob> = {};
   const sorted = [...jobs].sort((a, b) => {
-    const d = (s: string) => parseInt(s.split(".")[0]);
+    const d = (s: string) => {
+      const [day, month] = s.split(".").map(Number);
+      return month * 100 + day;
+    };
     return d(a.delivery) - d(b.delivery);
   });
 
@@ -65,13 +68,19 @@ function buildKiPlan(jobs: Job[]): Record<SlotKey, PlacedJob> {
 export function WochenplanungView() {
   const [grid, setGrid] = useState<Record<SlotKey, PlacedJob>>({});
   const [tasche, setTasche] = useState<Job[]>(TASCHE_JOBS);
-  const [dragging, setDragging] = useState<Job | null>(null);
-
   const hasKiSlots = Object.values(grid).some((s) => s.aiSuggested);
 
   function handleKiPlan() {
     const plan = buildKiPlan(tasche);
-    setGrid(plan);
+    setGrid((prev) => {
+      const merged: Record<SlotKey, PlacedJob> = { ...prev };
+      for (const [key, slot] of Object.entries(plan)) {
+        if (!merged[key]) {
+          merged[key] = slot;
+        }
+      }
+      return merged;
+    });
   }
 
   function confirmKiPlan() {
@@ -84,40 +93,43 @@ export function WochenplanungView() {
     setTasche((prev) => prev.filter((j) => !placedIds.has(j.id)));
   }
 
-  function handleDragStart(job: Job) {
-    setDragging(job);
-  }
-
-  function handleDrop(machine: Machine, day: Weekday, slot: Slot) {
-    if (!dragging) return;
+  function handleDrop(e: React.DragEvent, machine: Machine, day: Weekday, slot: Slot) {
+    const jobId = e.dataTransfer.getData("jobId");
+    const job = tasche.find((j) => j.id === jobId);
+    if (!job) return;
     const key = slotKey(machine, day, slot);
+    // Don't overwrite an occupied slot
+    if (grid[key]) return;
     setGrid((prev) => ({
       ...prev,
       [key]: {
-        jobId: dragging.id,
-        customer: dragging.customer,
-        machine: dragging.machine,
-        delivery: dragging.delivery,
+        jobId: job.id,
+        customer: job.customer,
+        machine: job.machine,
+        delivery: job.delivery,
         phase: "Im Druck",
         aiSuggested: false,
       },
     }));
-    setTasche((prev) => prev.filter((j) => j.id !== dragging.id));
-    setDragging(null);
+    setTasche((prev) => prev.filter((j) => j.id !== jobId));
   }
 
   function removeFromGrid(key: SlotKey) {
-    const removed = grid[key];
-    if (!removed) return;
-    const originalJob = JOBS.find((j) => j.id === removed.jobId);
-    setGrid((prev) => {
-      const next = { ...prev };
+    setGrid((prevGrid) => {
+      const removed = prevGrid[key];
+      if (!removed) return prevGrid;
+      const originalJob = JOBS.find((j) => j.id === removed.jobId);
+      if (originalJob) {
+        setTasche((prevTasche) =>
+          prevTasche.find((j) => j.id === removed.jobId)
+            ? prevTasche
+            : [...prevTasche, originalJob]
+        );
+      }
+      const next = { ...prevGrid };
       delete next[key];
       return next;
     });
-    if (originalJob && !tasche.find((j) => j.id === removed.jobId)) {
-      setTasche((prev) => [...prev, originalJob]);
-    }
   }
 
   return (
@@ -207,7 +219,7 @@ export function WochenplanungView() {
                             placed={placed}
                             color={color}
                             onDragOver={(e) => e.preventDefault()}
-                            onDrop={() => handleDrop(machine, day, slot)}
+                            onDrop={(e) => handleDrop(e, machine, day, slot)}
                             onRemove={() => removeFromGrid(key)}
                           />
                         );
@@ -252,7 +264,7 @@ export function WochenplanungView() {
                 key={job.id}
                 job={job}
                 color={color}
-                onDragStart={() => handleDragStart(job)}
+                onDragStart={() => {}}
               />
             );
           })}
@@ -274,7 +286,7 @@ function GridSlotCell({
   placed: PlacedJob | undefined;
   color: string;
   onDragOver: (e: React.DragEvent) => void;
-  onDrop: () => void;
+  onDrop: (e: React.DragEvent) => void;
   onRemove: () => void;
 }) {
   if (placed) {
@@ -310,7 +322,7 @@ function GridSlotCell({
   return (
     <div
       onDragOver={onDragOver}
-      onDrop={onDrop}
+      onDrop={(e) => onDrop(e)}
       className="rounded-lg border border-dashed border-[oklch(0.82_0.05_240)] bg-[oklch(0.97_0.03_240)] px-2 py-1.5 text-[9px] text-[oklch(0.60_0.08_240)] font-medium hover:border-[oklch(0.65_0.12_240)] hover:bg-[oklch(0.94_0.05_240)] transition"
       style={{ minHeight: 40 }}
     >
@@ -331,7 +343,10 @@ function TascheCard({
   return (
     <div
       draggable
-      onDragStart={onDragStart}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("jobId", job.id);
+        onDragStart();
+      }}
       className="rounded-xl border px-3 py-2.5 cursor-grab active:cursor-grabbing hover:shadow-md hover:translate-y-[-1px] transition select-none"
       style={{
         borderStyle: "solid",
