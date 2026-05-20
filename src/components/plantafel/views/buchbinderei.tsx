@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { JOBS, LIVE_PRINT, MACHINE_META, CASCADE_CONFLICTS } from "@/lib/mock-data";
 import { StatusGlowDot, MachineBadge } from "../dots";
 import { Play, BellRing, Printer, Clock, Zap } from "lucide-react";
+import { FinishingBadge, FinishingType } from "../finishing-badge";
 
 const COLS = [
   { day: 0, label: "Heute" },
@@ -13,6 +15,12 @@ export function BuchbindereiView() {
   const myCascade = CASCADE_CONFLICTS.filter((cc) =>
     cc.affected.some((a) => a.role === "buchbinderei")
   );
+
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="relative p-8 space-y-6 fade-swap">
@@ -73,16 +81,22 @@ export function BuchbindereiView() {
         </div>
 
         <div className="grid grid-cols-3 gap-5">
-          {LIVE_PRINT.map((p) => {
-            const color = MACHINE_META[p.machine].color;
-            const almostDone = p.progress >= 90;
-            const isCascade = p.cascadeWarning;
+          {LIVE_PRINT.map((lp) => {
+            const color = MACHINE_META[lp.machine].color;
+            const almostDone = lp.progress >= 90;
+            const isCascade = lp.cascadeWarning;
+
+            const remaining = Math.max(0, lp.finishInMin * 60 - tick);
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            const timeStr = remaining > 0 ? `${mins}:${secs.toString().padStart(2, "0")} verbleibend` : "Fertig!";
+
             return (
               <div
-                key={p.id}
+                key={lp.id}
                 className={`relative soft-card p-5 transition ${
                   almostDone ? "ring-2 ring-[oklch(0.72_0.18_145/0.4)] shadow-[0_0_24px_oklch(0.72_0.18_145/0.2)]" : ""
-                } ${isCascade ? "ring-2 ring-[oklch(0.65_0.22_25/0.3)]" : ""}`}
+                } ${isCascade ? "ring-2 ring-[oklch(0.65_0.22_25/0.5)] animate-pulse" : ""}`}
               >
                 {isCascade && (
                   <div className="absolute top-3 right-3">
@@ -93,17 +107,17 @@ export function BuchbindereiView() {
                 )}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-[10px] text-muted-foreground">{p.id}</div>
-                    <div className="font-semibold text-base truncate">{p.customer}</div>
+                    <div className="text-[10px] text-muted-foreground">{lp.id}</div>
+                    <div className="font-semibold text-base truncate">{lp.customer}</div>
                   </div>
-                  <MachineBadge machine={p.machine} />
+                  <MachineBadge machine={lp.machine} />
                 </div>
 
                 <div className="mt-4">
                   <div className="flex items-baseline justify-between mb-1.5">
-                    <span className="kpi-numeral text-2xl" style={{ color }}>{p.progress}%</span>
-                    <span className="text-[11px] text-muted-foreground">
-                      Fertig in ~{p.finishInMin} Min
+                    <span className="kpi-numeral text-2xl" style={{ color }}>{lp.progress}%</span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {timeStr}
                     </span>
                   </div>
                   <div
@@ -113,7 +127,7 @@ export function BuchbindereiView() {
                     <div
                       className="print-shimmer h-full rounded-full transition-all"
                       style={{
-                        width: `${p.progress}%`,
+                        width: `${lp.progress}%`,
                         background: `linear-gradient(90deg, ${color}, color-mix(in oklab, ${color} 70%, white))`,
                         boxShadow: `0 0 12px color-mix(in oklab, ${color} 60%, transparent)`,
                       }}
@@ -124,12 +138,12 @@ export function BuchbindereiView() {
                 <div className="mt-3 flex items-center justify-between text-[11px]">
                   <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    WV bereit in ~{p.wvInHours}h
+                    WV bereit in ~{lp.wvInHours}h
                   </span>
                   {almostDone && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-[oklch(0.72_0.18_145/0.15)] px-2 py-0.5 text-[10px] font-semibold text-[oklch(0.40_0.18_145)]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[oklch(0.55_0.18_145)] glow-green" />
-                      Fast fertig
+                      Gleich fertig!
                     </span>
                   )}
                 </div>
@@ -139,21 +153,28 @@ export function BuchbindereiView() {
         </div>
       </section>
 
-      {/* Drei-Tage-Plan */}
+      {/* Mein Tagesplan */}
       <section>
         <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-1.5">
           Weiterverarbeitung
         </div>
-        <h2 className="editorial-header text-2xl mb-5">Drei-Tage-Plan</h2>
+        <h2 className="editorial-header text-2xl mb-5">Mein Tagesplan</h2>
 
         <div className="grid grid-cols-3 gap-5">
           {COLS.map((c) => {
             const jobs = JOBS.filter((j) => j.wvDay === c.day && j.finishing);
+            const totalHours = jobs.reduce((sum, j) => sum + (j.finishingHours ?? 0), 0);
+            const overCapacity = totalHours > 8;
             return (
               <div key={c.day} className="soft-card soft-card-lg p-5 min-h-[380px]">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-1">
                   <div className="text-base font-semibold">{c.label}</div>
                   <span className="kpi-numeral text-xl text-muted-foreground">{jobs.length}</span>
+                </div>
+                <div className="mb-4">
+                  <span className={overCapacity ? "text-destructive font-semibold text-[11px]" : "text-muted-foreground text-[11px]"}>
+                    {totalHours}h {overCapacity ? "⚠ Überkapazität!" : ""}
+                  </span>
                 </div>
                 <div className="space-y-2.5">
                   {jobs.map((j) => {
@@ -183,7 +204,7 @@ export function BuchbindereiView() {
                           </div>
                         )}
                         <div className="mt-2 flex items-center justify-between text-xs">
-                          <span className="font-medium">{j.finishing}</span>
+                          {j.finishing ? <FinishingBadge type={j.finishing as FinishingType} /> : <span />}
                           <span className="text-muted-foreground">~{j.finishingHours}h</span>
                         </div>
                         <div className="mt-2.5 flex items-center justify-between">
