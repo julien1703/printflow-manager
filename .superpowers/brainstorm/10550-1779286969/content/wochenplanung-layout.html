@@ -1,0 +1,247 @@
+<h2>Wochenplanung: Wie soll das Layout aussehen?</h2>
+<p class="subtitle">Der Produktionsleiter sieht den Wochenplan + die Auftragstasche (Aufträge mit Druckfreigabe, noch nicht verplant). Welches Layout macht am meisten Sinn?</p>
+
+<div class="cards">
+
+  <!-- Option A: Grid oben, Tasche unten -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f5f5f3;padding:12px;border-radius:8px;font-family:system-ui;min-height:280px;display:flex;flex-direction:column;gap:8px;">
+
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:13px;font-weight:700;">Wochenplanung KW 20</div>
+          <div style="background:#3a5cf5;color:white;padding:3px 8px;border-radius:12px;font-size:9px;font-weight:700;">✦ KI-Plan bereit · 9 Vorschläge</div>
+        </div>
+
+        <!-- Grid -->
+        <div style="flex:1;background:white;border-radius:8px;overflow:hidden;border:1px solid #e8e8e6;">
+          <!-- Header row -->
+          <div style="display:grid;grid-template-columns:50px repeat(5,1fr);background:#f8f8f7;border-bottom:1px solid #e8e8e6;">
+            <div style="padding:4px 6px;font-size:9px;color:#aaa;"></div>
+            <div style="padding:4px;font-size:9px;font-weight:700;color:#666;text-align:center;border-left:1px solid #e8e8e6;background:#fffbf0;">Mo<br><span style="color:#f59e0b;font-size:8px;">Heute</span></div>
+            <div style="padding:4px;font-size:9px;font-weight:600;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Di</div>
+            <div style="padding:4px;font-size:9px;font-weight:600;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Mi</div>
+            <div style="padding:4px;font-size:9px;font-weight:600;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Do</div>
+            <div style="padding:4px;font-size:9px;font-weight:600;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Fr</div>
+          </div>
+          <!-- CD row -->
+          <div style="display:grid;grid-template-columns:50px repeat(5,1fr);border-bottom:1px solid #e8e8e6;">
+            <div style="padding:6px;display:flex;align-items:center;"><div style="background:#ff8c42;color:white;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:700;">CD</div></div>
+            <!-- AI suggested -->
+            <div style="border-left:1px solid #e8e8e6;background:#fffbf0;padding:3px;">
+              <div style="border:1.5px dashed #3a5cf5;border-radius:4px;padding:3px 4px;background:#f0f4ff;">
+                <div style="font-size:8px;color:#3a5cf5;font-weight:700;">✦ KI</div>
+                <div style="font-size:8px;font-weight:600;color:#111;line-height:1.2;">Mustermann</div>
+              </div>
+            </div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;">
+              <div style="border:1.5px dashed #3a5cf5;border-radius:4px;padding:3px 4px;background:#f0f4ff;">
+                <div style="font-size:8px;color:#3a5cf5;font-weight:700;">✦ KI</div>
+                <div style="font-size:8px;font-weight:600;color:#111;">Mustermann</div>
+              </div>
+            </div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;">
+              <div style="border:1px dashed #ccc;border-radius:4px;padding:6px;background:#fafafa;text-align:center;">
+                <div style="font-size:8px;color:#bbb;">Frei</div>
+              </div>
+            </div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1px dashed #ccc;border-radius:4px;padding:6px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">Frei</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1px dashed #ccc;border-radius:4px;padding:6px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">Frei</div></div></div>
+          </div>
+          <!-- SM5 row mit Konflikt -->
+          <div style="display:grid;grid-template-columns:50px repeat(5,1fr);">
+            <div style="padding:6px;display:flex;align-items:center;"><div style="background:#e54;color:white;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:700;">SM5</div></div>
+            <div style="border-left:1px solid #e8e8e6;background:#fffbf0;padding:3px;">
+              <div style="border:1.5px solid #e54;border-radius:4px;padding:3px 4px;background:#fff3f0;">
+                <div style="font-size:8px;color:#e54;font-weight:700;">⚠ Konflikt</div>
+                <div style="font-size:8px;font-weight:600;color:#111;">Rossmann</div>
+              </div>
+            </div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1px dashed #ccc;border-radius:4px;padding:6px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">Frei</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1.5px dashed #3a5cf5;border-radius:4px;padding:3px 4px;background:#f0f4ff;"><div style="font-size:8px;color:#3a5cf5;font-weight:700;">✦ KI</div><div style="font-size:8px;font-weight:600;color:#111;">Müller Vlg.</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1px dashed #ccc;border-radius:4px;padding:6px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">Frei</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1px dashed #ccc;border-radius:4px;padding:6px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">Frei</div></div></div>
+          </div>
+        </div>
+
+        <!-- Auftragstasche — horizontal cards at bottom -->
+        <div>
+          <div style="font-size:9px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:5px;">📋 Auftragstasche — 5 Aufträge mit Druckfreigabe</div>
+          <div style="display:flex;gap:6px;overflow-x:auto;">
+            <div style="background:white;border-radius:8px;padding:7px 10px;border:1.5px solid #e8e8e6;min-width:90px;flex-shrink:0;cursor:grab;">
+              <div style="font-size:8px;color:#ff8c42;font-weight:700;">CD</div>
+              <div style="font-size:10px;font-weight:600;">Mustermann</div>
+              <div style="font-size:8px;color:#888;">5.000 Stk.</div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:7px 10px;border:1.5px solid #e8e8e6;min-width:90px;flex-shrink:0;cursor:grab;">
+              <div style="font-size:8px;color:#34c98f;font-weight:700;">Digi</div>
+              <div style="font-size:10px;font-weight:600;">Weber AG</div>
+              <div style="font-size:8px;color:#888;">10.000 Stk.</div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:7px 10px;border:1.5px solid #e8e8e6;min-width:90px;flex-shrink:0;cursor:grab;">
+              <div style="font-size:8px;color:#ff8c42;font-weight:700;">CD</div>
+              <div style="font-size:10px;font-weight:600;">Schulz Textil</div>
+              <div style="font-size:8px;color:#888;">5.000 Stk.</div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:7px 10px;border:1.5px dashed #3a5cf5;min-width:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+              <div style="font-size:11px;color:#3a5cf5;font-weight:700;">+2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Grid oben, Tasche unten</h3>
+      <p>Der Wochenplan nimmt den Hauptteil des Bildschirms ein. Die Auftragstasche ist eine scrollbare Karten-Leiste unten. Aufträge können in freie Slots gezogen werden. Klassisches Kanban-Prinzip.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Grid links, Tasche rechts -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f5f5f3;padding:12px;border-radius:8px;font-family:system-ui;min-height:280px;display:flex;flex-direction:column;gap:8px;">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:13px;font-weight:700;">Wochenplanung KW 20</div>
+          <div style="background:#3a5cf5;color:white;padding:3px 8px;border-radius:12px;font-size:9px;font-weight:700;">✦ KI · 9 Vorschläge</div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex:1;">
+          <!-- Wochenplan Grid (links, kompakter) -->
+          <div style="flex:1;background:white;border-radius:8px;overflow:hidden;border:1px solid #e8e8e6;">
+            <div style="display:grid;grid-template-columns:40px repeat(5,1fr);background:#f8f8f7;border-bottom:1px solid #e8e8e6;">
+              <div></div>
+              <div style="padding:3px;font-size:8px;font-weight:700;color:#f59e0b;text-align:center;border-left:1px solid #e8e8e6;background:#fffbf0;">Mo</div>
+              <div style="padding:3px;font-size:8px;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Di</div>
+              <div style="padding:3px;font-size:8px;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Mi</div>
+              <div style="padding:3px;font-size:8px;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Do</div>
+              <div style="padding:3px;font-size:8px;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Fr</div>
+            </div>
+            <div style="display:grid;grid-template-columns:40px repeat(5,1fr);border-bottom:1px solid #e8e8e6;">
+              <div style="padding:4px 3px;"><div style="background:#ff8c42;color:white;padding:1px 4px;border-radius:2px;font-size:8px;font-weight:700;">CD</div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;background:#fffbf0;"><div style="border:1.5px dashed #3a5cf5;border-radius:3px;padding:2px 3px;background:#f0f4ff;"><div style="font-size:7px;color:#3a5cf5;">✦</div><div style="font-size:7px;font-weight:600;">Mustermann</div></div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;"><div style="border:1.5px dashed #3a5cf5;border-radius:3px;padding:2px 3px;background:#f0f4ff;"><div style="font-size:7px;color:#3a5cf5;">✦</div><div style="font-size:7px;font-weight:600;">Mustermann</div></div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;"><div style="border:1px dashed #ddd;border-radius:3px;padding:5px 3px;background:#fafafa;text-align:center;"><div style="font-size:7px;color:#ccc;">Frei</div></div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;"><div style="border:1px dashed #ddd;border-radius:3px;padding:5px 3px;background:#fafafa;text-align:center;"><div style="font-size:7px;color:#ccc;">Frei</div></div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;"><div style="border:1px dashed #ddd;border-radius:3px;padding:5px 3px;background:#fafafa;text-align:center;"><div style="font-size:7px;color:#ccc;">Frei</div></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:40px repeat(5,1fr);">
+              <div style="padding:4px 3px;"><div style="background:#e54;color:white;padding:1px 4px;border-radius:2px;font-size:8px;font-weight:700;">SM5</div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;background:#fffbf0;"><div style="border:1.5px solid #e54;border-radius:3px;padding:2px 3px;background:#fff0ee;"><div style="font-size:7px;color:#e54;font-weight:700;">⚠</div><div style="font-size:7px;font-weight:600;">Rossmann</div></div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;"><div style="border:1px dashed #ddd;border-radius:3px;padding:5px 3px;background:#fafafa;text-align:center;"><div style="font-size:7px;color:#ccc;">Frei</div></div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;"><div style="border:1px dashed #ddd;border-radius:3px;padding:5px 3px;background:#fafafa;text-align:center;"><div style="font-size:7px;color:#ccc;">Frei</div></div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;"><div style="border:1.5px dashed #3a5cf5;border-radius:3px;padding:2px 3px;background:#f0f4ff;"><div style="font-size:7px;color:#3a5cf5;">✦</div><div style="font-size:7px;font-weight:600;">Müller Vlg</div></div></div>
+              <div style="border-left:1px solid #e8e8e6;padding:2px;"><div style="border:1px dashed #ddd;border-radius:3px;padding:5px 3px;background:#fafafa;text-align:center;"><div style="font-size:7px;color:#ccc;">Frei</div></div></div>
+            </div>
+          </div>
+
+          <!-- Auftragstasche rechts -->
+          <div style="width:110px;flex-shrink:0;">
+            <div style="font-size:8px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">📋 Tasche</div>
+            <div style="display:flex;flex-direction:column;gap:5px;">
+              <div style="background:white;border-radius:7px;padding:6px 8px;border:1.5px solid #e8e8e6;cursor:grab;">
+                <div style="font-size:7px;color:#ff8c42;font-weight:700;">CD</div>
+                <div style="font-size:9px;font-weight:600;">Schulz Textil</div>
+                <div style="font-size:7px;color:#888;">5.000 Stk.</div>
+              </div>
+              <div style="background:white;border-radius:7px;padding:6px 8px;border:1.5px solid #e8e8e6;cursor:grab;">
+                <div style="font-size:7px;color:#5b7cf6;font-weight:700;">RZK</div>
+                <div style="font-size:9px;font-weight:600;">Kaiser Ind.</div>
+                <div style="font-size:7px;color:#888;">1.200 Stk.</div>
+              </div>
+              <div style="background:white;border-radius:7px;padding:6px 8px;border:1.5px solid #e8e8e6;cursor:grab;">
+                <div style="font-size:7px;color:#34c98f;font-weight:700;">Digi</div>
+                <div style="font-size:9px;font-weight:600;">Weber AG</div>
+                <div style="font-size:7px;color:#888;">10.000 Stk.</div>
+              </div>
+              <div style="background:white;border-radius:7px;padding:6px 8px;border:1.5px solid #e8e8e6;opacity:0.5;">
+                <div style="font-size:7px;color:#888;font-weight:600;">+2 weitere</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Grid links, Tasche rechts</h3>
+      <p>Auftragstasche als permanente Seitenleiste rechts. Der Wochenplan ist kompakter. Beide Bereiche immer gleichzeitig sichtbar. Gut für Tablets.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Vollbild Grid, Tasche als Drawer -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f5f5f3;padding:12px;border-radius:8px;font-family:system-ui;min-height:280px;display:flex;flex-direction:column;gap:8px;">
+
+        <!-- AI Bestätigen Banner -->
+        <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+          <div style="font-size:9px;color:#3a5cf5;font-weight:700;">✦ KI-Plan: 9 Slots vorgeschlagen</div>
+          <div style="margin-left:auto;display:flex;gap:4px;">
+            <div style="background:#3a5cf5;color:white;padding:3px 8px;border-radius:5px;font-size:8px;font-weight:700;">Alle bestätigen</div>
+            <div style="background:white;border:1px solid #ccc;padding:3px 8px;border-radius:5px;font-size:8px;">Ablehnen</div>
+          </div>
+        </div>
+
+        <!-- Großes Grid -->
+        <div style="flex:1;background:white;border-radius:8px;overflow:hidden;border:1px solid #e8e8e6;">
+          <div style="display:grid;grid-template-columns:48px repeat(5,1fr);background:#f8f8f7;border-bottom:1px solid #e8e8e6;">
+            <div></div>
+            <div style="padding:5px 4px;font-size:9px;font-weight:700;color:#f59e0b;text-align:center;border-left:1px solid #e8e8e6;background:#fffbf0;">Mo · Heute</div>
+            <div style="padding:5px 4px;font-size:9px;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Dienstag</div>
+            <div style="padding:5px 4px;font-size:9px;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Mittwoch</div>
+            <div style="padding:5px 4px;font-size:9px;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Donnerstag</div>
+            <div style="padding:5px 4px;font-size:9px;color:#888;text-align:center;border-left:1px solid #e8e8e6;">Freitag</div>
+          </div>
+          <!-- CD -->
+          <div style="display:grid;grid-template-columns:48px repeat(5,1fr);border-bottom:1px solid #e8e8e6;">
+            <div style="padding:8px 5px;display:flex;align-items:center;"><div style="background:#ff8c42;color:white;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:700;">CD</div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;background:#fffbf0;">
+              <div style="border:2px dashed #3a5cf5;border-radius:5px;padding:4px 5px;background:#f0f4ff;cursor:pointer;">
+                <div style="font-size:8px;color:#3a5cf5;font-weight:700;">✦ KI-Vorschlag</div>
+                <div style="font-size:9px;font-weight:700;color:#111;">Mustermann GmbH</div>
+                <div style="font-size:8px;color:#666;">Hauptdruck</div>
+                <div style="display:flex;gap:3px;margin-top:3px;">
+                  <div style="background:#3a5cf5;color:white;padding:1px 5px;border-radius:3px;font-size:7px;font-weight:700;">✓</div>
+                  <div style="background:#eee;padding:1px 5px;border-radius:3px;font-size:7px;color:#666;">✗</div>
+                </div>
+              </div>
+            </div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:2px dashed #3a5cf5;border-radius:5px;padding:4px 5px;background:#f0f4ff;"><div style="font-size:8px;color:#3a5cf5;font-weight:700;">✦ KI</div><div style="font-size:9px;font-weight:700;">Mustermann</div><div style="display:flex;gap:3px;margin-top:3px;"><div style="background:#3a5cf5;color:white;padding:1px 5px;border-radius:3px;font-size:7px;">✓</div><div style="background:#eee;padding:1px 5px;border-radius:3px;font-size:7px;color:#666;">✗</div></div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1.5px dashed #ccc;border-radius:5px;padding:8px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">+ Auftrag</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1.5px dashed #ccc;border-radius:5px;padding:8px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">+ Auftrag</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1.5px dashed #ccc;border-radius:5px;padding:8px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">+ Auftrag</div></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:48px repeat(5,1fr);">
+            <div style="padding:8px 5px;display:flex;align-items:center;"><div style="background:#e54;color:white;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:700;">SM5</div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;background:#fffbf0;"><div style="border:2px solid #e54;border-radius:5px;padding:4px 5px;background:#fff0ee;"><div style="font-size:8px;color:#e54;font-weight:700;">⚠ Konflikt</div><div style="font-size:9px;font-weight:700;">Rossmann GmbH</div><div style="font-size:8px;color:#e54;">+2 Tage</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1.5px dashed #ccc;border-radius:5px;padding:8px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">+ Auftrag</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1.5px dashed #ccc;border-radius:5px;padding:8px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">+ Auftrag</div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:2px dashed #3a5cf5;border-radius:5px;padding:4px 5px;background:#f0f4ff;"><div style="font-size:8px;color:#3a5cf5;font-weight:700;">✦ KI</div><div style="font-size:9px;font-weight:700;">Müller Verlag</div><div style="display:flex;gap:3px;margin-top:3px;"><div style="background:#3a5cf5;color:white;padding:1px 5px;border-radius:3px;font-size:7px;">✓</div><div style="background:#eee;padding:1px 5px;border-radius:3px;font-size:7px;color:#666;">✗</div></div></div></div>
+            <div style="border-left:1px solid #e8e8e6;padding:3px;"><div style="border:1.5px dashed #ccc;border-radius:5px;padding:8px;background:#fafafa;text-align:center;"><div style="font-size:8px;color:#bbb;">+ Auftrag</div></div></div>
+          </div>
+        </div>
+
+        <!-- Auftragstasche als aufklappbarer Streifen unten -->
+        <div style="background:white;border-radius:8px;border:1.5px solid #e8e8e6;padding:8px 10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="font-size:9px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:0.1em;">📋 Auftragstasche · 5 bereit</div>
+            <div style="font-size:8px;color:#888;">← ziehen in freien Slot</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div style="background:#f8f8f7;border-radius:6px;padding:5px 8px;border:1.5px solid #e0e0dd;cursor:grab;font-size:8px;"><div style="color:#ff8c42;font-weight:700;margin-bottom:1px;">CD</div><div style="font-weight:600;">Schulz Textil</div></div>
+            <div style="background:#f8f8f7;border-radius:6px;padding:5px 8px;border:1.5px solid #e0e0dd;cursor:grab;font-size:8px;"><div style="color:#5b7cf6;font-weight:700;margin-bottom:1px;">RZK</div><div style="font-weight:600;">Kaiser Ind.</div></div>
+            <div style="background:#f8f8f7;border-radius:6px;padding:5px 8px;border:1.5px solid #e0e0dd;cursor:grab;font-size:8px;"><div style="color:#34c98f;font-weight:700;margin-bottom:1px;">Digi</div><div style="font-weight:600;">Weber AG</div></div>
+            <div style="background:#f0f4ff;border-radius:6px;padding:5px 8px;border:1.5px dashed #3a5cf5;cursor:grab;font-size:8px;"><div style="color:#3a5cf5;font-weight:700;margin-bottom:1px;">✦ KI</div><div style="font-weight:600;color:#3a5cf5;">verplant</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Vollbild Grid + KI-Accept/Reject</h3>
+      <p>Der Plan nimmt fast den ganzen Screen ein. Jeder KI-Vorschlag hat direkt ✓/✗ Buttons. Auftragstasche ist ein fester Streifen unten. Freie Slots zeigen "+ Auftrag" zum Reinziehen.</p>
+    </div>
+  </div>
+
+</div>
