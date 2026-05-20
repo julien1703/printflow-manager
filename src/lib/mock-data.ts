@@ -518,7 +518,7 @@ export const WEEK_PLAN: WeekSlot[] = [
   // SM5: Rossmann (0850 – CASCADE CONFLICT), Müller Verlag (0853)
   { machine: "SM5", day: "Mo", slot: "Früh", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck",           ownerPM: "Müller", cascadeConflict: true },
   { machine: "SM5", day: "Mo", slot: "Spät", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck",           ownerPM: "Müller", cascadeConflict: true },
-  { machine: "SM5", day: "Di", slot: "Früh", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Weiterverarbeitung", ownerPM: "Müller", cascadeConflict: true },
+  { machine: "SM5", day: "Di", slot: "Früh", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck", ownerPM: "Müller", cascadeConflict: true },
   { machine: "SM5", day: "Di", slot: "Spät" },
   { machine: "SM5", day: "Mi", slot: "Früh" },
   { machine: "SM5", day: "Mi", slot: "Spät" },
