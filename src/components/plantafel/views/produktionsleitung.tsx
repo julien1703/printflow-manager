@@ -28,18 +28,6 @@ function getCurrentJob(machine: Machine): Job | undefined {
   );
 }
 
-function getMachineStatus(machine: Machine): "Läuft" | "Bereit" | "Blockiert" {
-  const job = JOBS.find(
-    (j) =>
-      j.machine === machine &&
-      j.orderStatus !== "Abgeschlossen" &&
-      j.orderStatus !== "Storniert"
-  );
-  if (!job) return "Bereit";
-  if (job.cascadeConflict || job.orderStatus === "Blockiert") return "Blockiert";
-  if (job.orderStatus === "In Produktion") return "Läuft";
-  return "Bereit";
-}
 
 export function ProduktionsleitungView() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -52,7 +40,7 @@ export function ProduktionsleitungView() {
   });
 
   const missingFreigabe = JOBS.filter(
-    (j) => j.druckfreigabe === "Fehlt" && j.orderStatus !== "Abgeschlossen"
+    (j) => j.druckfreigabe === "Fehlt" && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
   );
 
   return (
@@ -137,8 +125,14 @@ export function ProduktionsleitungView() {
         <div className="grid grid-cols-4 gap-4">
           {ALL_MACHINES.map((machine) => {
             const job = getCurrentJob(machine);
-            const status = getMachineStatus(machine);
             const color = MACHINE_META[machine].color;
+            const status: "Läuft" | "Bereit" | "Blockiert" = !job
+              ? "Bereit"
+              : job.cascadeConflict || job.orderStatus === "Blockiert"
+              ? "Blockiert"
+              : job.orderStatus === "In Produktion"
+              ? "Läuft"
+              : "Bereit";
             return (
               <MachineKachel
                 key={machine}
@@ -232,15 +226,17 @@ function MachineKachel({
   const isRunning = status === "Läuft";
 
   return (
-    <div
-      className={`rounded-2xl border p-5 transition ${onClick ? "cursor-pointer hover:shadow-md hover:translate-y-[-1px]" : ""}`}
-      style={{
-        borderLeftWidth: 4,
-        borderLeftColor: color,
-        backgroundColor: isBlocked ? "oklch(0.65 0.22 25 / 0.05)" : "var(--card)",
-        borderColor: isBlocked ? "oklch(0.65 0.22 25 / 0.30)" : "var(--border)",
-      }}
+    <button
+      type="button"
       onClick={onClick}
+      disabled={!onClick}
+      className={`w-full text-left rounded-2xl border p-5 transition ${onClick ? "hover:shadow-md hover:translate-y-[-1px]" : "cursor-default"}`}
+      style={{
+        borderStyle: "solid",
+        borderWidth: "1px 1px 1px 4px",
+        borderColor: `${isBlocked ? "oklch(0.65 0.22 25 / 0.30)" : "var(--border)"} ${isBlocked ? "oklch(0.65 0.22 25 / 0.30)" : "var(--border)"} ${isBlocked ? "oklch(0.65 0.22 25 / 0.30)" : "var(--border)"} ${color}`,
+        backgroundColor: isBlocked ? "oklch(0.65 0.22 25 / 0.05)" : "var(--card)",
+      }}
     >
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-bold" style={{ color }}>
@@ -282,7 +278,7 @@ function MachineKachel({
       ) : (
         <div className="text-sm text-muted-foreground">Kein aktiver Auftrag</div>
       )}
-    </div>
+    </button>
   );
 }
 
