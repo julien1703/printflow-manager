@@ -68,6 +68,8 @@ function buildKiPlan(jobs: Job[]): Record<SlotKey, PlacedJob> {
 export function WochenplanungView() {
   const [grid, setGrid] = useState<Record<SlotKey, PlacedJob>>({});
   const [tasche, setTasche] = useState<Job[]>(TASCHE_JOBS);
+  const [dragMachine, setDragMachine] = useState<Machine | null>(null);
+  const [newlyPlaced, setNewlyPlaced] = useState<Set<SlotKey>>(new Set());
   const hasKiSlots = Object.values(grid).some((s) => s.aiSuggested);
 
   function handleKiPlan() {
@@ -91,6 +93,20 @@ export function WochenplanungView() {
     setTasche((prev) => prev.filter((j) => !placedIds.has(j.id)));
   }
 
+  function resetKiPlan() {
+    setGrid((prev) => {
+      const next: Record<SlotKey, PlacedJob> = {};
+      for (const [key, slot] of Object.entries(prev)) {
+        if (!slot.aiSuggested) next[key] = slot;
+      }
+      return next;
+    });
+  }
+
+  function handleDragEnd() {
+    setDragMachine(null);
+  }
+
   function handleDrop(e: React.DragEvent, machine: Machine, day: Weekday, slot: Slot) {
     const jobId = e.dataTransfer.getData("jobId");
     const job = tasche.find((j) => j.id === jobId);
@@ -109,6 +125,19 @@ export function WochenplanungView() {
       },
     }));
     setTasche((prev) => prev.filter((j) => j.id !== jobId));
+    setNewlyPlaced((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+    setTimeout(() => {
+      setNewlyPlaced((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }, 300);
+    setDragMachine(null);
   }
 
   function removeFromGrid(key: SlotKey) {
@@ -196,7 +225,9 @@ export function WochenplanungView() {
                               slotName={slot}
                               placed={placed}
                               color={color}
-                              onDragOver={(e) => e.preventDefault()}
+                              dragMachine={dragMachine}
+                              gridMachine={machine}
+                              isNew={newlyPlaced.has(key)}
                               onDrop={(e) => handleDrop(e, machine, day, slot)}
                               onRemove={() => removeFromGrid(key)}
                             />
@@ -226,10 +257,13 @@ export function WochenplanungView() {
             <button
               type="button"
               onClick={handleKiPlan}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-[oklch(0.55_0.22_258/0.6)] bg-[oklch(0.55_0.22_258/0.06)] px-4 py-2.5 text-xs font-semibold text-[oklch(0.40_0.22_258)] hover:bg-[oklch(0.55_0.22_258/0.14)] transition"
+              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold text-white transition hover:opacity-90 shadow-sm"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.55 0.22 280), oklch(0.48 0.19 295))",
+              }}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              ✦ KI verplant
+              ✦ KI-Plan generieren
             </button>
           </div>
 
@@ -247,22 +281,30 @@ export function WochenplanungView() {
                   key={job.id}
                   job={job}
                   color={color}
-                  onDragStart={() => {}}
+                  onDragStart={(machine) => setDragMachine(machine)}
+                  onDragEnd={handleDragEnd}
                 />
               );
             })}
           </div>
 
-          {/* Confirm button */}
+          {/* Confirm + Reset buttons */}
           {hasKiSlots && (
-            <div className="shrink-0 p-4 border-t border-border">
+            <div className="shrink-0 p-4 border-t border-border space-y-2">
               <button
                 type="button"
                 onClick={confirmKiPlan}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-foreground text-background px-4 py-2.5 text-sm font-semibold hover:opacity-85 transition shadow-sm"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[oklch(0.52_0.14_153)] text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition shadow-sm"
               >
                 <Check className="h-4 w-4" />
-                Plan bestätigen
+                Alle übernehmen
+              </button>
+              <button
+                type="button"
+                onClick={resetKiPlan}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-muted/30 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/50 transition"
+              >
+                Alles zurücksetzen
               </button>
             </div>
           )}
@@ -273,20 +315,24 @@ export function WochenplanungView() {
 }
 
 function GridSlotCell({
-  slotName, placed, color, onDragOver, onDrop, onRemove,
+  slotName, placed, color, dragMachine, gridMachine, isNew, onDrop, onRemove,
 }: {
   slotName: Slot;
   placed: PlacedJob | undefined;
   color: string;
-  onDragOver: (e: React.DragEvent) => void;
+  dragMachine: Machine | null;
+  gridMachine: Machine;
+  isNew: boolean;
   onDrop: (e: React.DragEvent) => void;
   onRemove: () => void;
 }) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
   if (placed) {
     const isAi = placed.aiSuggested;
     return (
       <div
-        className="relative rounded-lg px-2 py-1.5 group"
+        className={`relative rounded-lg px-2 py-1.5 group ${isNew ? "pop-in" : ""} ${isAi ? "ki-pulse" : ""}`}
         style={{
           backgroundColor: isAi ? "oklch(0.55 0.22 258 / 0.08)" : `color-mix(in oklab, ${color} 10%, white)`,
           border: isAi
@@ -302,6 +348,12 @@ function GridSlotCell({
           {slotName}{isAi && " · KI"}
         </div>
         <div className="text-[11px] font-semibold leading-tight truncate">{placed.customer}</div>
+        {isAi && (
+          <span
+            className="absolute top-1 right-5 text-[8px] font-bold"
+            style={{ color: "oklch(0.55 0.22 280)" }}
+          >✦</span>
+        )}
         <button
           type="button"
           onClick={onRemove}
@@ -314,45 +366,59 @@ function GridSlotCell({
     );
   }
 
+  const isMismatch = dragMachine !== null && dragMachine !== gridMachine;
+
   return (
     <div
-      onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e)}
-      className="rounded-lg border border-dashed border-[oklch(0.82_0.05_240)] bg-[oklch(0.97_0.03_240)] px-2 py-1.5 text-[9px] text-[oklch(0.60_0.08_240)] font-medium hover:border-[oklch(0.65_0.12_240)] hover:bg-[oklch(0.94_0.05_240)] transition"
+      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={(e) => { setIsDragOver(false); onDrop(e); }}
+      className={`drop-zone rounded-lg border border-dashed px-2 py-1.5 text-[9px] font-medium transition ${
+        isDragOver && isMismatch
+          ? "drag-over-blocked border-[oklch(0.65_0.22_25/0.6)] text-[oklch(0.55_0.22_25)]"
+          : isDragOver
+          ? "drag-over border-[oklch(0.70_0.14_240/0.6)] text-[oklch(0.45_0.15_240)]"
+          : "border-[oklch(0.82_0.05_240)] bg-[oklch(0.97_0.03_240)] text-[oklch(0.60_0.08_240)] hover:border-[oklch(0.65_0.12_240)] hover:bg-[oklch(0.94_0.05_240)]"
+      }`}
       style={{ minHeight: 40 }}
     >
       <span className="opacity-50">{slotName}</span>
+      {isDragOver && isMismatch && <div className="text-[8px] mt-0.5 opacity-70">Falsche Maschine</div>}
     </div>
   );
 }
 
 function TascheCard({
-  job, color, onDragStart,
+  job, color, onDragStart, onDragEnd,
 }: {
   job: Job;
   color: string;
-  onDragStart: () => void;
+  onDragStart: (machine: Machine) => void;
+  onDragEnd: () => void;
 }) {
+  const [isDragging, setIsDragging] = useState(false);
   return (
     <div
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("jobId", job.id);
-        onDragStart();
+        setIsDragging(true);
+        onDragStart(job.machine);
       }}
-      className="rounded-xl cursor-grab active:cursor-grabbing hover:shadow-md active:opacity-60 transition select-none overflow-hidden"
+      onDragEnd={() => {
+        setIsDragging(false);
+        onDragEnd();
+      }}
+      className={`drag-card rounded-xl select-none overflow-hidden ${isDragging ? "dragging" : ""}`}
       style={{
         border: `1px solid color-mix(in oklab, ${color} 20%, var(--border))`,
         backgroundColor: `color-mix(in oklab, ${color} 6%, var(--card))`,
       }}
     >
-      {/* Color bar */}
-      <div className="h-1" style={{ backgroundColor: color }} />
+      <div className="h-1.5" style={{ backgroundColor: color }} />
       <div className="px-3 py-2.5">
         <div className="flex items-center gap-1.5 mb-1">
-          <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color }}>
-            {job.machine}
-          </span>
+          <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color }}>{job.machine}</span>
           <span className="text-[9px] text-muted-foreground">·</span>
           <span className="text-[9px] text-muted-foreground font-mono">{job.delivery}</span>
         </div>
