@@ -187,11 +187,16 @@ export function WochenplanungView() {
                 return (
                   <div
                     key={d}
-                    className={`px-3 py-3 text-center border-l border-border ${isToday ? "bg-[oklch(0.95_0.09_95)]" : ""}`}
+                    className={`px-3 py-3 text-center border-l border-border ${isToday ? "bg-[oklch(0.94_0.08_85)]" : ""}`}
                   >
-                    <div className="text-[10px] uppercase tracking-[0.14em] font-semibold text-muted-foreground">{d}</div>
+                    <div className={`text-[10px] uppercase tracking-[0.14em] font-bold ${isToday ? "text-[oklch(0.42_0.16_85)]" : "text-muted-foreground"}`}>
+                      {d}
+                    </div>
                     {isToday && (
-                      <div className="mt-0.5 text-[10px] font-semibold text-[oklch(0.50_0.16_85)]">Heute</div>
+                      <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-[oklch(0.90_0.10_85)] px-2 py-0.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[oklch(0.55_0.18_85)]" />
+                        <span className="text-[9px] font-bold text-[oklch(0.42_0.16_85)]">Heute</span>
+                      </div>
                     )}
                   </div>
                 );
@@ -206,8 +211,9 @@ export function WochenplanungView() {
                   className="grid border-b border-border last:border-0"
                   style={{ gridTemplateColumns: `90px repeat(${WEEKDAYS.length}, 1fr)` }}
                 >
-                  <div className="flex items-center px-3 py-2 border-r border-border">
-                    <span className="text-sm font-bold" style={{ color }}>{machine}</span>
+                  <div className="flex flex-col items-center justify-center px-2 py-3 border-r border-border gap-1">
+                    <span className="text-sm font-black" style={{ color }}>{machine}</span>
+                    <div className="h-1 w-8 rounded-full" style={{ backgroundColor: color, opacity: 0.4 }} />
                   </div>
                   {WEEKDAYS.map((day, di) => {
                     const isToday = di === TODAY_INDEX;
@@ -257,13 +263,14 @@ export function WochenplanungView() {
             <button
               type="button"
               onClick={handleKiPlan}
-              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold text-white transition hover:opacity-90 shadow-sm"
+              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition hover:opacity-90 shadow-md"
               style={{
                 background: "linear-gradient(135deg, oklch(0.55 0.22 280), oklch(0.48 0.19 295))",
+                boxShadow: "0 4px 16px oklch(0.55 0.22 280 / 0.30)",
               }}
             >
-              <Sparkles className="h-3.5 w-3.5" />
-              ✦ KI-Plan generieren
+              <Sparkles className="h-4 w-4" />
+              KI-Plan generieren
             </button>
           </div>
 
@@ -294,10 +301,14 @@ export function WochenplanungView() {
               <button
                 type="button"
                 onClick={confirmKiPlan}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[oklch(0.52_0.14_153)] text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition shadow-sm"
+                className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition shadow-sm hover:opacity-90"
+                style={{
+                  background: "oklch(0.52 0.14 153)",
+                  boxShadow: "0 2px 12px oklch(0.52 0.14 153 / 0.30)",
+                }}
               >
                 <Check className="h-4 w-4" />
-                Alle übernehmen
+                Plan bestätigen
               </button>
               <button
                 type="button"
@@ -332,32 +343,28 @@ function GridSlotCell({
     const isAi = placed.aiSuggested;
     return (
       <div
-        className={`relative rounded-lg px-2 py-1.5 group ${isNew ? "pop-in" : ""} ${isAi ? "ki-pulse" : ""}`}
+        className={`relative rounded-xl overflow-hidden group ${isNew ? "pop-in" : ""} ${isAi ? "ki-pulse" : ""}`}
         style={{
-          backgroundColor: isAi ? "oklch(0.55 0.22 258 / 0.08)" : `color-mix(in oklab, ${color} 10%, white)`,
+          background: isAi
+            ? "oklch(0.95 0.04 280)"
+            : `color-mix(in oklab, ${color} 12%, white)`,
           border: isAi
             ? "1.5px dashed oklch(0.55 0.22 258 / 0.7)"
-            : `2px solid color-mix(in oklab, ${color} 20%, white)`,
-          borderRadius: 8,
+            : `1px solid color-mix(in oklab, ${color} 25%, var(--border))`,
         }}
       >
-        <div
-          className="text-[9px] uppercase tracking-wider font-semibold mb-0.5"
-          style={{ color: isAi ? "oklch(0.40 0.22 258)" : color }}
-        >
-          {slotName}{isAi && " · KI"}
+        {!isAi && <div style={{ height: 3, backgroundColor: color }} />}
+        <div className="px-2 py-2">
+          <div className="text-[9px] uppercase tracking-wider font-bold mb-0.5" style={{ color: isAi ? "oklch(0.40 0.22 258)" : color }}>
+            {slotName}{isAi && " · KI ✦"}
+          </div>
+          <div className="text-[11px] font-bold leading-tight truncate">{placed.customer}</div>
+          <div className="text-[9px] text-muted-foreground font-mono mt-0.5">{placed.delivery}</div>
         </div>
-        <div className="text-[11px] font-semibold leading-tight truncate">{placed.customer}</div>
-        {isAi && (
-          <span
-            className="absolute top-1 right-5 text-[8px] font-bold"
-            style={{ color: "oklch(0.55 0.22 280)" }}
-          >✦</span>
-        )}
         <button
           type="button"
           onClick={onRemove}
-          className="absolute top-1 right-1 rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/60 transition"
+          className="absolute top-1 right-1 rounded-md p-0.5 opacity-0 group-hover:opacity-100 hover:bg-white/70 transition"
           aria-label="Auftrag entfernen"
         >
           <X className="h-2.5 w-2.5 text-muted-foreground" />
@@ -373,17 +380,21 @@ function GridSlotCell({
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={(e) => { setIsDragOver(false); onDrop(e); }}
-      className={`drop-zone rounded-lg border border-dashed px-2 py-1.5 text-[9px] font-medium transition ${
+      className={`drop-zone rounded-xl border-2 border-dashed transition ${
         isDragOver && isMismatch
-          ? "drag-over-blocked border-[oklch(0.65_0.22_25/0.6)] text-[oklch(0.55_0.22_25)]"
+          ? "border-destructive/50 bg-destructive/5 drag-over-blocked"
           : isDragOver
-          ? "drag-over border-[oklch(0.70_0.14_240/0.6)] text-[oklch(0.45_0.15_240)]"
-          : "border-[oklch(0.82_0.05_240)] bg-[oklch(0.97_0.03_240)] text-[oklch(0.60_0.08_240)] hover:border-[oklch(0.65_0.12_240)] hover:bg-[oklch(0.94_0.05_240)]"
+          ? "border-[oklch(0.55_0.22_280/0.6)] bg-[oklch(0.96_0.04_280)] drag-over"
+          : "border-border/60 bg-muted/20 hover:border-border hover:bg-muted/40"
       }`}
-      style={{ minHeight: 40 }}
+      style={{ minHeight: 52 }}
     >
-      <span className="opacity-50">{slotName}</span>
-      {isDragOver && isMismatch && <div className="text-[8px] mt-0.5 opacity-70">Falsche Maschine</div>}
+      <div className="flex items-center justify-center h-full pt-3 pb-2">
+        <span className="text-[9px] text-muted-foreground/50 font-medium">{slotName}</span>
+      </div>
+      {isDragOver && isMismatch && (
+        <div className="text-center pb-1 text-[8px] text-destructive/70 font-medium">Falsche Maschine</div>
+      )}
     </div>
   );
 }
@@ -411,15 +422,19 @@ function TascheCard({
       }}
       className={`drag-card rounded-xl select-none overflow-hidden ${isDragging ? "dragging" : ""}`}
       style={{
-        border: `1px solid color-mix(in oklab, ${color} 20%, var(--border))`,
-        backgroundColor: `color-mix(in oklab, ${color} 6%, var(--card))`,
+        border: `1px solid color-mix(in oklab, ${color} 25%, var(--border))`,
+        backgroundColor: `color-mix(in oklab, ${color} 8%, var(--card))`,
       }}
     >
-      <div className="h-1.5" style={{ backgroundColor: color }} />
+      <div className="h-2" style={{ backgroundColor: color }} />
       <div className="px-3 py-2.5">
         <div className="flex items-center gap-1.5 mb-1">
-          <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color }}>{job.machine}</span>
-          <span className="text-[9px] text-muted-foreground">·</span>
+          <span
+            className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+            style={{ backgroundColor: `color-mix(in oklab, ${color} 18%, white)`, color }}
+          >
+            {job.machine}
+          </span>
           <span className="text-[9px] text-muted-foreground font-mono">{job.delivery}</span>
         </div>
         <div className="text-sm font-semibold leading-tight">{job.customer}</div>
