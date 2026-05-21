@@ -49,6 +49,12 @@ const VORSTUFE_JOBS: VorstufeJob[] = JOBS
 const criticalCount = VORSTUFE_JOBS.filter((j) => j.urgency === "critical").length;
 const warnCount = VORSTUFE_JOBS.filter((j) => j.urgency === "warn").length;
 
+const KANBAN_COLS = [
+  { urgency: "critical" as const, label: "Kritisch",     color: "oklch(0.50 0.22 25)" },
+  { urgency: "warn"     as const, label: "Ausstehend",   color: "oklch(0.55 0.17 85)" },
+  { urgency: "ok"       as const, label: "Freigegeben",  color: "oklch(0.52 0.14 153)" },
+];
+
 export function DruckvorstufeView() {
   return (
     <div className="p-8 space-y-6 fade-swap">
@@ -82,16 +88,35 @@ export function DruckvorstufeView() {
         </div>
       )}
 
-      {/* Job list */}
-      <div className="space-y-3">
-        {VORSTUFE_JOBS.map((j) => (
-          <FreigabeCard key={j.id} job={j} />
-        ))}
-        {VORSTUFE_JOBS.length === 0 && (
-          <div className="rounded-2xl bg-card border border-border p-12 text-center text-muted-foreground">
-            Alle Aufträge freigegeben.
-          </div>
-        )}
+      {/* Kanban board */}
+      <div className="grid grid-cols-3 gap-5">
+        {KANBAN_COLS.map(col => {
+          const colJobs = VORSTUFE_JOBS.filter(j => j.urgency === col.urgency);
+          return (
+            <div key={col.urgency} className="soft-card overflow-hidden">
+              {/* Column header */}
+              <div
+                className="px-4 py-3 border-b border-border flex items-center justify-between"
+                style={{ borderTopWidth: 3, borderTopColor: col.color }}
+              >
+                <span className="text-xs font-bold uppercase tracking-[0.12em]" style={{ color: col.color }}>{col.label}</span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  style={{ backgroundColor: `color-mix(in oklab, ${col.color} 12%, white)`, color: col.color }}
+                >
+                  {colJobs.length}
+                </span>
+              </div>
+              {/* Cards */}
+              <div className="p-3 space-y-2.5 min-h-[300px]">
+                {colJobs.map(j => <KanbanCard key={j.id} job={j} accentColor={col.color} />)}
+                {colJobs.length === 0 && (
+                  <div className="text-xs text-muted-foreground italic py-8 text-center">Keine Aufträge</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -182,6 +207,62 @@ function FreigabeCard({ job }: { job: VorstufeJob }) {
           {job.druckfreigabe === "Angefordert" && (
             <button className="inline-flex items-center gap-1.5 rounded-xl bg-[oklch(0.72_0.18_145)] text-white text-xs font-semibold px-4 py-2 hover:opacity-90 transition">
               <CheckCircle2 className="h-3.5 w-3.5" />Freigabe erteilen
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KanbanCard({ job, accentColor }: { job: VorstufeJob; accentColor: string }) {
+  const isCritical = job.urgency === "critical";
+
+  const deadlineLabel =
+    job.daysUntilDeadline === 0 ? "Heute fällig" :
+    job.daysUntilDeadline === 1 ? "Morgen fällig" :
+    job.daysUntilDeadline < 0 ? `${Math.abs(job.daysUntilDeadline)}T überfällig` :
+    `in ${job.daysUntilDeadline}T`;
+
+  const deadlineCls =
+    job.daysUntilDeadline <= 1 ? "text-destructive font-semibold" :
+    job.daysUntilDeadline <= 3 ? "text-[oklch(0.52_0.17_85)] font-semibold" :
+    "text-muted-foreground";
+
+  return (
+    <div
+      className="card-lift rounded-xl border bg-card p-3.5"
+      style={{ borderLeftWidth: 3, borderLeftColor: accentColor }}
+    >
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <span className="text-[10px] font-mono text-muted-foreground">{job.id}</span>
+        <div className="flex items-center gap-1 shrink-0">
+          {isCritical && (
+            <span className="pulse-chip inline-flex h-4 w-4 items-center justify-center rounded-full bg-destructive/15 text-destructive text-[9px] font-black">!</span>
+          )}
+          <span className={`text-[10px] ${deadlineCls}`}>{deadlineLabel}</span>
+        </div>
+      </div>
+      <div className="text-sm font-semibold leading-tight">{job.customer}</div>
+      {job.product && <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{job.product}</div>}
+      {job.productionScheduled && (
+        <span className="mt-1.5 inline-block rounded-full bg-destructive/15 px-2 py-0.5 text-[9px] font-semibold text-destructive">
+          Produktion geplant
+        </span>
+      )}
+      {job.urgency !== "ok" && (
+        <div className="mt-2.5 flex gap-1.5 pt-2.5 border-t border-border">
+          <button className="inline-flex items-center gap-1 rounded-lg bg-muted text-foreground text-[10px] font-medium px-2.5 py-1.5 hover:bg-muted/70 transition">
+            <FileSearch className="h-3 w-3" />Prüfen
+          </button>
+          {job.druckfreigabe === "Fehlt" && (
+            <button className="inline-flex items-center gap-1 rounded-lg bg-foreground text-background text-[10px] font-semibold px-2.5 py-1.5 hover:opacity-85 transition">
+              <Send className="h-3 w-3" />Anfordern
+            </button>
+          )}
+          {job.druckfreigabe === "Angefordert" && (
+            <button className="inline-flex items-center gap-1 rounded-lg bg-[oklch(0.72_0.18_145)] text-white text-[10px] font-semibold px-2.5 py-1.5 hover:opacity-90 transition">
+              <CheckCircle2 className="h-3 w-3" />Erteilen
             </button>
           )}
         </div>
