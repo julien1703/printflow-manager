@@ -38,7 +38,7 @@ function Index() {
   const effectiveNav = current.nav.includes(nav) ? nav : "Übersicht";
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex h-screen overflow-hidden w-full bg-background">
       <Sidebar
         role={role}
         activeNav={effectiveNav}
@@ -46,9 +46,9 @@ function Index() {
         collapsed={!sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
       />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar role={role} onRoleChange={handleRoleChange} />
-        <main className="flex-1 overflow-auto" key={`${role}-${effectiveNav}`}>
+        <main className="flex-1 overflow-y-auto" key={`${role}-${effectiveNav}`}>
           {effectiveNav === "Wochenplan" && role === "produktionsleitung" ? (
             <WochenplanungView />
           ) : effectiveNav === "Wochenplan" ? (
