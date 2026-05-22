@@ -53,6 +53,14 @@ export interface Job {
   cascadeConflict?: boolean;
   cascadeDelay?: string;
   projectManager?: string;
+  // --- Maisch interview additions ---
+  dispersionslack?: boolean;
+  sonderfarbe?: string;
+  grammatur?: number;
+  druckzeitStunden?: number;
+  festgepinnt?: boolean;
+  isNew?: boolean;
+  paletten?: number;
 }
 
 export const JOBS: Job[] = [
@@ -80,6 +88,11 @@ export const JOBS: Job[] = [
     quantity: "5.000 Stk.",
     instructions: "4/4-farbig, Sonderfarbe Pantone 286 C",
     projectManager: "Müller",
+    dispersionslack: true,
+    sonderfarbe: "Pantone 286 C",
+    grammatur: 135,
+    druckzeitStunden: 4.5,
+    festgepinnt: true,
   },
   {
     id: "#2024-0848",
@@ -155,6 +168,10 @@ export const JOBS: Job[] = [
     quantity: "1.500 Stk.",
     instructions: "5-farbig inkl. Glanzlack",
     projectManager: "Müller",
+    dispersionslack: false,
+    sonderfarbe: "Pantone 485 C",
+    grammatur: 135,
+    druckzeitStunden: 3.0,
   },
   {
     id: "#2024-0851",
@@ -229,6 +246,10 @@ export const JOBS: Job[] = [
     quantity: "2.000 Stk.",
     instructions: "5-farbig inkl. Folienprägung",
     projectManager: "Schmidt",
+    dispersionslack: true,
+    grammatur: 120,
+    druckzeitStunden: 5.0,
+    paletten: 3,
   },
   {
     id: "#2024-0854",
@@ -317,6 +338,64 @@ export const JOBS: Job[] = [
     quantity: "500 Stk.",
     instructions: "4/4-farbig, Ecken abrunden",
     projectManager: "Schmidt",
+  },
+  {
+    id: "#2024-0858",
+    customer: "Dresdner Druck GmbH",
+    product: "Geschäftsbericht 2025",
+    machine: "CD",
+    phase: "Vorstufe",
+    orderStatus: "Auftragseingang",
+    status: "Nach Plan",
+    delivery: "28.05.",
+    openSubsteps: 0,
+    druckfreigabe: "Angefordert",
+    finishing: "Binden",
+    finishingHours: 3.5,
+    wvDay: 2,
+    wvStatus: "Wartet auf Druck",
+    city: "Dresden",
+    versandfertigAb: "27.05.",
+    shipStatus: "Offen",
+    shipUrgency: "medium",
+    paper: "Bilderdruck matt 170g",
+    quantity: "1.500 Stk.",
+    instructions: "4/4-farbig, Klebebindung, Dispersionslack",
+    projectManager: "Schmidt",
+    dispersionslack: true,
+    grammatur: 170,
+    druckzeitStunden: 3.5,
+    isNew: true,
+  },
+  {
+    id: "#2024-0859",
+    customer: "Metallbau Hoffmann",
+    product: "Produktkatalog Metallic",
+    machine: "SM5",
+    phase: "Vorstufe",
+    orderStatus: "Auftragseingang",
+    status: "Nach Plan",
+    delivery: "29.05.",
+    openSubsteps: 0,
+    druckfreigabe: "Fehlt",
+    finishing: "Falzen",
+    finishingHours: 2.0,
+    wvDay: 2,
+    wvStatus: "Wartet auf Druck",
+    city: "Stuttgart",
+    versandfertigAb: "28.05.",
+    shipStatus: "Offen",
+    shipUrgency: "low",
+    paper: "Metallic-Karton 250g",
+    quantity: "800 Stk.",
+    instructions: "5-farbig inkl. Sonderfarbe, Lacküberzug",
+    projectManager: "Müller",
+    dispersionslack: false,
+    sonderfarbe: "Pantone 877 C Silber",
+    grammatur: 250,
+    druckzeitStunden: 6.0,
+    isNew: true,
+    paletten: 1,
   },
 ];
 
@@ -475,10 +554,16 @@ export const LIVE_PRINT: LivePrintJob[] = [
 ];
 
 /* ========== Wochenplan slot grid ========== */
-export type Slot = "Früh" | "Spät";
+export type Slot = "Früh" | "Spät" | "Nacht";
 export const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr"] as const;
 export type Weekday = typeof WEEKDAYS[number];
 export const SLOTS: Slot[] = ["Früh", "Spät"];
+export const SLOTS_BY_MACHINE: Record<Machine, Slot[]> = {
+  CD:   ["Früh", "Spät", "Nacht"],
+  RZK:  ["Früh"],
+  SM5:  ["Früh"],
+  Digi: ["Früh"],
+};
 export const TODAY_INDEX = 0; // Mo = today (2026-05-18)
 
 export interface WeekSlot {
@@ -537,6 +622,12 @@ export const WEEK_PLAN: WeekSlot[] = [
   { machine: "Digi", day: "Do", slot: "Spät" },
   { machine: "Digi", day: "Fr", slot: "Früh" },
   { machine: "Digi", day: "Fr", slot: "Spät" },
+  // CD Nacht-Schicht (3-schichtig)
+  { machine: "CD", day: "Mo", slot: "Nacht" },
+  { machine: "CD", day: "Di", slot: "Nacht" },
+  { machine: "CD", day: "Mi", slot: "Nacht" },
+  { machine: "CD", day: "Do", slot: "Nacht" },
+  { machine: "CD", day: "Fr", slot: "Nacht" },
 ];
 
 export const CURRENT_PM = "Müller";
