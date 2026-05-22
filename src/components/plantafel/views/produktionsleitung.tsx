@@ -8,7 +8,7 @@ import { KISuggestionsPanel } from "@/components/plantafel/ki-suggestions";
 import { JobBadges } from "@/components/plantafel/job-badges";
 import { AuftragDrawer } from "@/components/plantafel/auftrag-drawer";
 import {
-  AlertTriangle, Zap, X, TrendingDown, ArrowRight, Activity, Printer,
+  AlertTriangle, Zap, Clock, X, TrendingDown, ArrowRight, Activity, Printer,
   AlertOctagon, FileWarning, ChevronDown, ChevronUp,
 } from "lucide-react";
 
