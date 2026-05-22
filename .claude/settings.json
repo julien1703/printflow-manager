@@ -1,10 +1,11 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(bun run *)"
+    ],
     "additionalDirectories": [
       "/Users/julienoffray/Documents/HFG/7Semester/BA-Druckerei/Prototype1/src/lib"
-    ],
-    "allow": [
-      "Bash(npx tsc *)"
     ]
   }
 }
