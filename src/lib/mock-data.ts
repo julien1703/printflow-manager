@@ -67,7 +67,7 @@ export interface Job {
   seitenanzahl?: number | null;
   auflage?: number;
   druckdatenEingang?: string | null;  // "DD.MM." format; null = not yet received
-  weiterverarbeitungStunden?: number;
+  weiterverarbeitungStunden?: number; // total WV hours (complements finishingHours which is for the specific finishing step)
 }
 
 export const JOBS: Job[] = [
@@ -525,7 +525,7 @@ export const JOBS: Job[] = [
   },
   {
     id: "#2024-0865",
-    customer: "Rossmann GmbH",
+    customer: "Bauer Druck GmbH",
     product: "Produktkatalog",
     machine: "SM5",
     phase: "Im Druck",
@@ -548,7 +548,7 @@ export const JOBS: Job[] = [
   },
   {
     id: "#2024-0866",
-    customer: "Mustermann GmbH",
+    customer: "Stadtwerke Heidelberg",
     product: "Jahresbericht",
     machine: "CD",
     phase: "Im Druck",
