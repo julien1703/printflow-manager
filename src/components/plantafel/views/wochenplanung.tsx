@@ -2,8 +2,9 @@ import { useState } from "react";
 import {
   JOBS, MACHINE_META, WEEKDAYS, SLOTS_BY_MACHINE,
   TODAY_INDEX,
-  type Job, type Machine, type Phase, type Weekday, type Slot,
+  type Job, type Machine, type Weekday, type Slot,
 } from "@/lib/mock-data";
+import { buildKIPlan, type PlacedJob } from "@/lib/planning-ai";
 import { Check, Sparkles, X } from "lucide-react";
 import { JobBadges } from "@/components/plantafel/job-badges";
 
@@ -11,15 +12,17 @@ const ALL_MACHINES: Machine[] = ["CD", "RZK", "SM5", "Digi"];
 
 type SlotKey = string;
 
-interface PlacedJob {
+interface ManualJob {
   jobId: string;
   customer: string;
   machine: Machine;
   delivery: string;
-  phase: Phase;
-  aiSuggested: boolean;
+  phase: "Im Druck";
+  aiSuggested: false;
   reason?: string;
 }
+
+type GridJob = PlacedJob | ManualJob;
 
 function slotKey(machine: Machine, day: Weekday, slot: Slot): SlotKey {
   return `${machine}|${day}|${slot}`;
@@ -33,42 +36,8 @@ const TASCHE_JOBS: Job[] = JOBS.filter(
     j.orderStatus !== "Versandbereit"
 );
 
-function buildKiPlan(jobs: Job[]): Record<SlotKey, PlacedJob> {
-  const plan: Record<SlotKey, PlacedJob> = {};
-  const sorted = [...jobs].sort((a, b) => {
-    const d = (s: string) => {
-      const [day, month] = s.split(".").map(Number);
-      return month * 100 + day;
-    };
-    return d(a.delivery) - d(b.delivery);
-  });
-
-  for (const job of sorted) {
-    let placed = false;
-    for (const day of WEEKDAYS) {
-      if (placed) break;
-      for (const slot of SLOTS_BY_MACHINE[job.machine]) {
-        const key = slotKey(job.machine, day, slot);
-        if (!plan[key]) {
-          plan[key] = {
-            jobId: job.id,
-            customer: job.customer,
-            machine: job.machine,
-            delivery: job.delivery,
-            phase: "Im Druck",
-            aiSuggested: true,
-          };
-          placed = true;
-          break;
-        }
-      }
-    }
-  }
-  return plan;
-}
-
 export function WochenplanungView() {
-  const [grid, setGrid] = useState<Record<SlotKey, PlacedJob>>({});
+  const [grid, setGrid] = useState<Record<SlotKey, GridJob>>({});
   const [tasche, setTasche] = useState<Job[]>(TASCHE_JOBS);
   const [dragMachine, setDragMachine] = useState<Machine | null>(null);
   const [newlyPlaced, setNewlyPlaced] = useState<Set<SlotKey>>(new Set());
@@ -87,9 +56,11 @@ export function WochenplanungView() {
   const hasKiSlots = Object.values(grid).some((s) => s.aiSuggested);
 
   function handleKiPlan() {
-    const plan = buildKiPlan(tasche);
+    const plan = buildKIPlan(
+      tasche.map((j) => ({ ...j, festgepinnt: pinnedIds.has(j.id) }))
+    );
     setGrid((prev) => {
-      const merged: Record<SlotKey, PlacedJob> = { ...prev };
+      const merged: Record<SlotKey, GridJob> = { ...prev };
       for (const [key, slot] of Object.entries(plan)) {
         if (!merged[key]) merged[key] = slot;
       }
@@ -98,9 +69,9 @@ export function WochenplanungView() {
   }
 
   function confirmKiPlan() {
-    const confirmed: Record<SlotKey, PlacedJob> = {};
+    const confirmed: Record<SlotKey, GridJob> = {};
     for (const [key, slot] of Object.entries(grid)) {
-      confirmed[key] = { ...slot, aiSuggested: false };
+      confirmed[key] = { ...slot, aiSuggested: false } as ManualJob;
     }
     setGrid(confirmed);
     const placedIds = new Set(Object.values(confirmed).map((s) => s.jobId));
@@ -109,7 +80,7 @@ export function WochenplanungView() {
 
   function resetKiPlan() {
     setGrid((prev) => {
-      const next: Record<SlotKey, PlacedJob> = {};
+      const next: Record<SlotKey, GridJob> = {};
       for (const [key, slot] of Object.entries(prev)) {
         if (!slot.aiSuggested) next[key] = slot;
       }
@@ -345,7 +316,7 @@ function GridSlotCell({
   slotName, placed, color, dragMachine, gridMachine, isNew, onDrop, onRemove,
 }: {
   slotName: Slot;
-  placed: PlacedJob | undefined;
+  placed: GridJob | undefined;
   color: string;
   dragMachine: Machine | null;
   gridMachine: Machine;
