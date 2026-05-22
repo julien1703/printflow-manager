@@ -50,7 +50,7 @@ druckdatenEingang?: string | null;        // "DD.MM." format wie delivery, null 
 weiterverarbeitungStunden?: number;       // ergänzt das bestehende finishingHours
 ```
 
-Bereits vorhanden und weiter genutzt: `dispersionslack`, `grammatur`, `druckzeitStunden`, `festgepinnt`, `isNew`, `sonderfarbe`, `paletten`, `kaskadenWarnung` (= `cascadeConflict`).
+Bereits vorhanden und weiter genutzt: `dispersionslack`, `grammatur`, `druckzeitStunden`, `festgepinnt`, `isNew`, `sonderfarbe`, `paletten`, `cascadeConflict`.
 
 ### Mock-Daten (12 Jobs)
 
@@ -248,7 +248,7 @@ interface AuftragDrawerProps {
 </Section>
 ```
 
-**Kaskadenwarnung** (neu, nur wenn `cascadeConflict || kaskadenWarnung`):
+**Kaskadenwarnung** (neu, nur wenn `cascadeConflict`):
 - Roter Block mit Erklärung welche Folgeaufträge betroffen sind
 
 ---
