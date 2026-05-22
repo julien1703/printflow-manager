@@ -1,0 +1,101 @@
+<h2>Proportionale Zeitdarstellung</h2>
+<p class="subtitle">Wie soll die Druckzeit visuell dargestellt werden?</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Echte Proportionen — Karte = % der Schicht</h3>
+      <p>Jede Schicht (8h) hat eine feste Zellhöhe. Die Karte nimmt proportional Platz ein. Eine 4h-Job belegt 50%, ein 8h-Job die ganze Schicht. Freie Zeit ist sofort sichtbar.</p>
+
+      <div style="display: flex; gap: 12px; margin: 1rem 0;">
+        <!-- Slot "Frühschicht" als Spalte -->
+        <div style="flex: 1;">
+          <div style="font-size: 0.65rem; font-weight: 700; color: #888; margin-bottom: 4px; text-transform:uppercase; letter-spacing:.05em;">Mo — Früh (8h)</div>
+          <div style="height: 160px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; position: relative; background: #fafafa;">
+            <!-- 4.5h Job = 56% -->
+            <div style="position:absolute; top:0; left:0; right:0; height: 56%; background: oklch(0.92 0.08 145); border-bottom: 2px solid oklch(0.72 0.18 145); padding: 6px 8px;">
+              <div style="font-size: 0.65rem; font-weight: 700; color: oklch(0.35 0.16 145);">Bosch E-Bike</div>
+              <div style="font-size: 0.58rem; color: oklch(0.45 0.14 145); margin-top: 2px;">4.5h · Lack ✓ · 135g</div>
+              <div style="font-size: 0.55rem; color: #aaa; margin-top: 1px;">#0847 · 27.05.</div>
+            </div>
+            <!-- 2.5h frei -->
+            <div style="position:absolute; bottom:0; left:0; right:0; height: 44%; display:flex; align-items:center; justify-content:center;">
+              <span style="font-size: 0.6rem; color: #ccc; font-style:italic;">1.5h frei</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex: 1;">
+          <div style="font-size: 0.65rem; font-weight: 700; color: #888; margin-bottom: 4px; text-transform:uppercase; letter-spacing:.05em;">Di — Früh (8h)</div>
+          <div style="height: 160px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; position: relative; background: #fafafa;">
+            <!-- 2h Job = 25% -->
+            <div style="position:absolute; top:0; left:0; right:0; height: 25%; background: oklch(0.93 0.08 55); border-bottom: 2px solid oklch(0.72 0.18 55); padding: 4px 8px;">
+              <div style="font-size: 0.65rem; font-weight: 700; color: oklch(0.38 0.16 55);">Logoprint</div>
+              <div style="font-size: 0.55rem; color: #aaa;">2h · #0859</div>
+            </div>
+            <!-- 5h Job nach dem ersten -->
+            <div style="position:absolute; top: 25%; left:0; right:0; height: 62.5%; background: oklch(0.90 0.10 25); border-bottom: 2px solid oklch(0.65 0.22 25); padding: 4px 8px;">
+              <div style="font-size: 0.65rem; font-weight: 700; color: white;">⚡ Buteros</div>
+              <div style="font-size: 0.55rem; color: rgba(255,255,255,0.7);">5h · express</div>
+            </div>
+            <div style="position:absolute; bottom:0; left:0; right:0; height: 12.5%; display:flex; align-items:center; justify-content:center;">
+              <span style="font-size: 0.55rem; color: #ccc; font-style:italic;">1h frei</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex: 1;">
+          <div style="font-size: 0.65rem; font-weight: 700; color: #888; margin-bottom: 4px; text-transform:uppercase; letter-spacing:.05em;">Mi — Früh (8h)</div>
+          <div style="height: 160px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; position: relative; background: #fafafa;">
+            <!-- 8h = komplett belegt -->
+            <div style="position:absolute; inset:0; background: oklch(0.92 0.08 280); border: 2px solid oklch(0.55 0.22 280); padding: 6px 8px;">
+              <div style="font-size: 0.65rem; font-weight: 700; color: oklch(0.30 0.20 280);">🔒 Kirchengemeindeblatt</div>
+              <div style="font-size: 0.58rem; color: oklch(0.40 0.18 280); margin-top: 2px;">8h · festgepinnt</div>
+              <div style="font-size: 0.55rem; color: #aaa; margin-top: 1px;">#0848 · 28.05.</div>
+              <div style="margin-top: 6px; font-size: 0.55rem; background: rgba(255,255,255,0.5); border-radius: 4px; padding: 2px 5px; display:inline-block;">Lack ✓ · Sonderfarbe HKS 43</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.78rem; opacity: 0.7;">✅ Kapazität sofort sichtbar &nbsp;·&nbsp; ✅ Echte Proportionen wie Papierzettel &nbsp;·&nbsp; ⚠️ Komplexeres Layout</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Karten gleich groß — Stunden als Zahl sichtbar</h3>
+      <p>Alle Karten haben gleiche Höhe. Druckzeit steht als Badge auf der Karte. Einfacher, vorhersehbarer, kompakter.</p>
+
+      <div style="display: flex; flex-direction: column; gap: 6px; margin: 1rem 0; max-width: 280px;">
+        <div style="background: oklch(0.92 0.08 145); border-radius: 8px; padding: 8px 10px; border-left: 3px solid oklch(0.55 0.18 145);">
+          <div style="display:flex; align-items:center; justify-content:between; gap: 6px;">
+            <span style="font-size: 0.68rem; font-weight: 700;">Bosch E-Bike</span>
+            <span style="margin-left:auto; font-size: 0.62rem; background: rgba(0,0,0,0.08); border-radius: 4px; padding: 1px 5px; font-family: monospace;">4.5h</span>
+          </div>
+          <div style="font-size: 0.58rem; color: #666; margin-top: 2px;">27.05. · Lack ✓ · 135g</div>
+        </div>
+        <div style="background: oklch(0.90 0.10 25); border-radius: 8px; padding: 8px 10px; border-left: 3px solid oklch(0.55 0.22 25);">
+          <div style="display:flex; align-items:center; gap: 6px;">
+            <span style="font-size: 0.68rem; font-weight: 700; color:white;">⚡ Buteros</span>
+            <span style="margin-left:auto; font-size: 0.62rem; background: rgba(255,255,255,0.2); border-radius: 4px; padding: 1px 5px; font-family: monospace; color:white;">5h</span>
+          </div>
+          <div style="font-size: 0.58rem; color: rgba(255,255,255,0.7); margin-top: 2px;">28.05. · express</div>
+        </div>
+        <div style="background: oklch(0.92 0.08 280); border-radius: 8px; padding: 8px 10px; border: 2px solid oklch(0.55 0.22 280);">
+          <div style="display:flex; align-items:center; gap: 6px;">
+            <span style="font-size: 0.68rem; font-weight: 700; color: oklch(0.30 0.20 280);">🔒 Kirchengemeindeblatt</span>
+            <span style="margin-left:auto; font-size: 0.62rem; background: rgba(0,0,0,0.08); border-radius: 4px; padding: 1px 5px; font-family: monospace;">8h</span>
+          </div>
+          <div style="font-size: 0.58rem; color: #666; margin-top: 2px;">28.05. · HKS 43 · Lack ✓</div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.78rem; opacity: 0.7;">✅ Einfach &nbsp;·&nbsp; ✅ Mehr Text sichtbar &nbsp;·&nbsp; ⚠️ Kapazität nicht visuell erkennbar</div>
+    </div>
+  </div>
+
+</div>

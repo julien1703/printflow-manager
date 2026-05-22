@@ -1,0 +1,31 @@
+<h2>Frage 1: Datenmodell-Strategie</h2>
+<p class="subtitle">Das bestehende <code>Job</code>-Modell hat englische Feldnamen. Dein Spec schlägt deutsche vor. Wie weiter?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Erweitern (empfohlen)</h3>
+      <p>Fehlende Felder ergänzen, bestehende Namen beibehalten (<code>customer</code>, <code>delivery</code> etc. bleiben). Alle 6 Views funktionieren sofort weiter. Kein Risiko.</p>
+      <div style="margin-top: 0.75rem; font-size: 0.8rem; opacity: 0.7;">✅ Schnell &nbsp;·&nbsp; ✅ Sicher &nbsp;·&nbsp; ⚠️ Gemischte Feldnamen</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Komplette Migration zu <code>PrintJob</code></h3>
+      <p>Alle Felder umbenennen, alle 6 Views + Sidebar + planning-ai.ts anpassen. Sauber, aber jede Datei muss angefasst werden.</p>
+      <div style="margin-top: 0.75rem; font-size: 0.8rem; opacity: 0.7;">✅ Sauber &nbsp;·&nbsp; ⚠️ Hohes Risiko &nbsp;·&nbsp; ⚠️ Viel Aufwand</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Neuer Typ nur für Wochenplan</h3>
+      <p><code>PrintJob</code> nur in der neuen Wochenplan-View verwenden. Andere Views bleiben unberührt. Kompromiss.</p>
+      <div style="margin-top: 0.75rem; font-size: 0.8rem; opacity: 0.7;">⚠️ Zwei parallele Typen &nbsp;·&nbsp; ✅ Andere Views sicher</div>
+    </div>
+  </div>
+</div>
