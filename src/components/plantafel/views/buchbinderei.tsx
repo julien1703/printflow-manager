@@ -10,6 +10,17 @@ const COLS = [
   { day: 2, label: "Übermorgen" },
 ];
 
+function needsTrocknungshinweis(job: import("@/lib/mock-data").Job): boolean {
+  const paperLower = (job.paper ?? "").toLowerCase();
+  const hasMetallic = paperLower.includes("metall");
+  const hasUngestrichenMitSonderfarbe =
+    (paperLower.includes("offset") ||
+      paperLower.includes("natur") ||
+      paperLower.includes("recycling")) &&
+    !!job.sonderfarbe;
+  return hasMetallic || hasUngestrichenMitSonderfarbe;
+}
+
 export function BuchbindereiView() {
   const bereit = JOBS.filter((j) => j.wvStatus === "Bereit für WV").length;
   const myCascade = CASCADE_CONFLICTS.filter((cc) =>
@@ -194,6 +205,18 @@ export function BuchbindereiView() {
                           <div className="min-w-0">
                             <div className="text-[10px] text-muted-foreground">{j.id}</div>
                             <div className="font-semibold text-sm truncate">{j.customer}</div>
+                            {needsTrocknungshinweis(j) && (
+                              <span
+                                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold mt-1"
+                                style={{
+                                  backgroundColor: "oklch(0.72 0.18 55 / 0.14)",
+                                  color: "oklch(0.42 0.18 55)",
+                                  border: "1px solid oklch(0.65 0.18 55 / 0.30)",
+                                }}
+                              >
+                                2T Trocknung
+                              </span>
+                            )}
                           </div>
                           <MachineBadge machine={j.machine} />
                         </div>

@@ -2,6 +2,13 @@ import { JOBS, CASCADE_CONFLICTS } from "@/lib/mock-data";
 import { MachineBadge } from "../dots";
 import { AlertTriangle, Truck, Zap, CheckCircle2 } from "lucide-react";
 
+function daysUntilDelivery(delivery: string): number {
+  const [day, month] = delivery.split(".").map(Number);
+  const todayOrdinal = 5 * 100 + 20;
+  const deliveryOrdinal = month * 100 + day;
+  return deliveryOrdinal - todayOrdinal;
+}
+
 export function LogistikView() {
   const sorted = [...JOBS]
     .filter((j) => j.orderStatus !== "Storniert")
@@ -280,6 +287,20 @@ export function LogistikView() {
                       <span className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-medium ${statusBadge(j.shipStatus ?? "Offen")}`}>
                         {j.shipStatus ?? "Offen"}
                       </span>
+                    )}
+                    {j.shipStatus === "Offen" && daysUntilDelivery(j.delivery) <= 2 && (
+                      <div
+                        className="mt-1.5 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
+                        style={{
+                          backgroundColor: "oklch(0.65 0.22 25 / 0.08)",
+                          border: "1px solid oklch(0.65 0.22 25 / 0.25)",
+                        }}
+                      >
+                        <AlertTriangle className="h-3 w-3 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
+                        <span className="text-[10px] font-semibold" style={{ color: "oklch(0.40 0.20 25)" }}>
+                          Palette offen{j.paletten !== undefined ? ` · ${j.paletten} Pal.` : ""} — Versand in ≤2 Tagen
+                        </span>
+                      </div>
                     )}
                   </td>
                 </tr>

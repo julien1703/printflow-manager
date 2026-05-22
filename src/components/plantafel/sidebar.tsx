@@ -129,6 +129,29 @@ export function Sidebar({ role, activeNav, onNavChange, collapsed = false, onTog
   );
 }
 
+type MessageGroup = {
+  type: "neue-auftraege" | "standard";
+  count?: number;
+  messages: typeof MESSAGES;
+};
+
+function groupMessages(messages: typeof MESSAGES): MessageGroup[] {
+  const neueAuftraege = messages.filter(
+    (m) => m.text.toLowerCase().includes("auftrag") || m.text.toLowerCase().includes("freigabe")
+  );
+  const rest = messages.filter(
+    (m) => !m.text.toLowerCase().includes("auftrag") && !m.text.toLowerCase().includes("freigabe")
+  );
+  const groups: MessageGroup[] = [];
+  if (neueAuftraege.length > 1) {
+    groups.push({ type: "neue-auftraege", count: neueAuftraege.length, messages: neueAuftraege });
+  } else {
+    neueAuftraege.forEach((m) => groups.push({ type: "standard", messages: [m] }));
+  }
+  rest.forEach((m) => groups.push({ type: "standard", messages: [m] }));
+  return groups;
+}
+
 interface TopBarProps {
   role: RoleKey;
   onRoleChange: (r: RoleKey) => void;
@@ -167,15 +190,30 @@ export function TopBar({ role, onRoleChange }: TopBarProps) {
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nachrichten</div>
               </div>
               <div className="divide-y divide-border">
-                {MESSAGES.map((m, i) => (
-                  <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition">
-                    <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${m.unread ? "bg-destructive" : "bg-border"}`} />
-                    <div>
-                      <div className="text-xs font-semibold">{m.from}</div>
-                      <div className="text-xs text-muted-foreground">{m.text}</div>
+                {groupMessages(MESSAGES).map((group, i) => {
+                  if (group.type === "neue-auftraege") {
+                    const anyUnread = group.messages.some((m) => m.unread);
+                    return (
+                      <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition">
+                        <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${anyUnread ? "bg-destructive" : "bg-border"}`} />
+                        <div>
+                          <div className="text-xs font-semibold">Neue Aufträge</div>
+                          <div className="text-xs text-muted-foreground">{group.count} neue Aufträge eingegangen</div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  const m = group.messages[0];
+                  return (
+                    <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30 transition">
+                      <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${m.unread ? "bg-destructive" : "bg-border"}`} />
+                      <div>
+                        <div className="text-xs font-semibold">{m.from}</div>
+                        <div className="text-xs text-muted-foreground">{m.text}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
