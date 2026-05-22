@@ -6,9 +6,9 @@ import {
 import { ZeitPill } from "../zeit-pill";
 import { KISuggestionsPanel } from "@/components/plantafel/ki-suggestions";
 import { JobBadges } from "@/components/plantafel/job-badges";
+import { AuftragDrawer } from "@/components/plantafel/auftrag-drawer";
 import {
-  AlertTriangle, Zap, Clock, Package, Layers, FileText,
-  Truck, X, TrendingDown, ArrowRight, Activity, Printer,
+  AlertTriangle, Zap, X, TrendingDown, ArrowRight, Activity, Printer,
   AlertOctagon, FileWarning, ChevronDown, ChevronUp,
 } from "lucide-react";
 
@@ -60,6 +60,9 @@ export function ProduktionsleitungView() {
       return next;
     });
   }
+
+  const [prioritaetOverrides, setPrioritaetOverrides] = useState<Record<string, Job["prioritaet"]>>({});
+  const [notizOverrides, setNotizOverrides] = useState<Record<string, string>>({});
 
   const activeJobs = JOBS.filter(
     (j) => j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
@@ -442,9 +445,20 @@ export function ProduktionsleitungView() {
 
       {selectedJob && (
         <AuftragDrawer
-          job={{ ...selectedJob, festgepinnt: pinnedIds.has(selectedJob.id) }}
+          job={{
+            ...selectedJob,
+            festgepinnt: pinnedIds.has(selectedJob.id),
+            prioritaet: prioritaetOverrides[selectedJob.id] ?? selectedJob.prioritaet,
+            notiz: notizOverrides[selectedJob.id] ?? selectedJob.notiz,
+          }}
           onClose={() => setSelectedJob(null)}
           onToggleFestgepinnt={() => togglePinned(selectedJob.id)}
+          onPrioritaetChange={(p) =>
+            setPrioritaetOverrides((prev) => ({ ...prev, [selectedJob.id]: p }))
+          }
+          onNotizChange={(text) =>
+            setNotizOverrides((prev) => ({ ...prev, [selectedJob.id]: text }))
+          }
         />
       )}
     </div>
@@ -600,219 +614,3 @@ function MachineKachel({
   );
 }
 
-function AuftragDrawer({
-  job,
-  onClose,
-  onToggleFestgepinnt,
-}: {
-  job: Job;
-  onClose: () => void;
-  onToggleFestgepinnt?: () => void;
-}) {
-  const meta = MACHINE_META[job.machine];
-  const currentIdx = PHASES.indexOf(job.phase);
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-foreground/10 backdrop-blur-[2px] z-40" onClick={onClose} />
-      <div className="fixed right-0 top-0 h-full w-110 bg-card drawer-panel z-50 overflow-y-auto flex flex-col">
-        <div
-          className="px-7 pt-7 pb-5 border-b border-border"
-          style={{ borderTopWidth: 3, borderTopColor: meta.color }}
-        >
-          <div className="flex items-start justify-between mb-1">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-1 font-mono">
-                {job.id}
-              </div>
-              <h2 className="text-xl font-semibold tracking-tight">{job.customer}</h2>
-              {job.product && (
-                <div className="text-sm text-muted-foreground mt-0.5">{job.product}</div>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 hover:bg-muted transition text-muted-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            <span className="text-xs font-semibold" style={{ color: meta.color }}>
-              {job.machine}
-            </span>
-            <ZeitPill status={job.status} />
-            <span className="text-[10px] rounded-full px-2 py-0.5 font-medium bg-muted text-muted-foreground">
-              {job.orderStatus}
-            </span>
-            {job.problem && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-destructive">
-                <AlertTriangle className="h-3 w-3" />
-                {job.problem}
-              </span>
-            )}
-          </div>
-          <JobBadges job={job} onToggleFestgepinnt={onToggleFestgepinnt} />
-        </div>
-
-        <div className="px-7 py-5 border-b border-border">
-          <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-3">
-            Produktionsfortschritt
-          </div>
-          <div className="flex items-center gap-2">
-            {PHASES.map((p, i) => {
-              const isCurrent = i === currentIdx;
-              const isDone = i < currentIdx;
-              return (
-                <div key={p} className="flex-1 flex flex-col items-center gap-1.5">
-                  <div
-                    className="h-2 w-full rounded-full"
-                    style={{
-                      backgroundColor: isCurrent
-                        ? meta.color
-                        : isDone
-                        ? "oklch(0.72 0.18 145)"
-                        : "var(--border)",
-                    }}
-                  />
-                  <span
-                    className={`text-[9px] text-center font-medium ${
-                      isCurrent ? "text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    {p}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="px-7 py-5 space-y-5 flex-1">
-          <Section icon={<Clock className="h-3.5 w-3.5" />} title="Termin & Versand">
-            <Row label="Liefertermin" value={job.delivery} mono />
-            {job.versandfertigAb && (
-              <Row label="Versandfertig ab" value={job.versandfertigAb} mono />
-            )}
-            {job.city && <Row label="Empfänger" value={job.city} />}
-            {job.shipStatus && (
-              <Row
-                label="Versandstatus"
-                value={
-                  <span
-                    className={`text-xs font-medium flex items-center gap-1 ${
-                      job.shipStatus === "Versendet"
-                        ? "text-[oklch(0.45_0.18_145)]"
-                        : job.shipStatus === "Gebucht"
-                        ? "text-machine-rzk"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    <Truck className="h-3 w-3" />
-                    {job.shipStatus}
-                  </span>
-                }
-              />
-            )}
-            {job.druckfreigabe && (
-              <Row
-                label="Druckfreigabe"
-                value={
-                  <span
-                    className={`text-xs font-semibold ${
-                      job.druckfreigabe === "Erteilt"
-                        ? "text-[oklch(0.45_0.18_145)]"
-                        : job.druckfreigabe === "Fehlt"
-                        ? "text-destructive"
-                        : "text-machine-cd"
-                    }`}
-                  >
-                    {job.druckfreigabe}
-                  </span>
-                }
-              />
-            )}
-          </Section>
-
-          <Section icon={<Layers className="h-3.5 w-3.5" />} title="Druckdetails">
-            {job.paper && <Row label="Papier" value={job.paper} />}
-            {job.quantity && <Row label="Auflage" value={job.quantity} mono />}
-            {job.instructions && <Row label="Spezifikation" value={job.instructions} />}
-            {job.grammatur !== undefined && (
-              <Row label="Grammatur" value={`${job.grammatur} g/m²`} mono />
-            )}
-            {job.druckzeitStunden !== undefined && (
-              <Row label="Berechnete Druckzeit" value={`~${job.druckzeitStunden} h`} mono />
-            )}
-            {job.dispersionslack !== undefined && (
-              <Row
-                label="Dispersionslack"
-                value={
-                  <span style={{ color: job.dispersionslack ? "oklch(0.38 0.14 153)" : "var(--muted-foreground)" }}>
-                    {job.dispersionslack ? "Ja — Lack-Rüstzeit beachten" : "Nein"}
-                  </span>
-                }
-              />
-            )}
-            {job.sonderfarbe && (
-              <Row label="Sonderfarbe" value={job.sonderfarbe} />
-            )}
-          </Section>
-
-          {job.finishing && (
-            <Section icon={<Package className="h-3.5 w-3.5" />} title="Weiterverarbeitung">
-              <Row label="Verfahren" value={job.finishing} />
-              {job.finishingHours && (
-                <Row label="Aufwand" value={`ca. ${job.finishingHours}h`} mono />
-              )}
-            </Section>
-          )}
-
-          {job.openSubsteps > 0 && (
-            <Section icon={<FileText className="h-3.5 w-3.5" />} title="Offene Schritte">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                  {job.openSubsteps}
-                </span>
-                <span className="text-sm text-muted-foreground">Substeps ausstehend</span>
-              </div>
-            </Section>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
-function Section({
-  icon, title, children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-2.5">
-        {icon}
-        {title}
-      </div>
-      <div className="space-y-1.5">{children}</div>
-    </div>
-  );
-}
-
-function Row({
-  label, value, mono,
-}: {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 text-xs">
-      <span className="text-muted-foreground shrink-0">{label}</span>
-      <span className={`text-right ${mono ? "font-mono" : "font-medium"}`}>{value}</span>
-    </div>
-  );
-}
