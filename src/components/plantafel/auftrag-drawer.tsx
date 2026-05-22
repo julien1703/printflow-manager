@@ -1,7 +1,6 @@
-import { type Job } from "@/lib/mock-data";
+import { PHASES, MACHINE_META, type Job } from "@/lib/mock-data";
 import { ZeitPill } from "@/components/plantafel/zeit-pill";
 import { JobBadges } from "@/components/plantafel/job-badges";
-import { PHASES, MACHINE_META } from "@/lib/mock-data";
 import {
   AlertTriangle, Clock, Package, Layers, FileText,
   Truck, X, Settings,
@@ -256,6 +255,7 @@ export function AuftragDrawer({
           )}
 
           {/* Planung — new */}
+          {(onToggleFestgepinnt || onPrioritaetChange || onNotizChange !== undefined) && (
           <Section icon={<Settings className="h-3.5 w-3.5" />} title="Planung">
             {onToggleFestgepinnt && (
               <div className="flex items-center justify-between text-xs">
@@ -309,6 +309,7 @@ export function AuftragDrawer({
               </div>
             )}
           </Section>
+          )}
 
           {/* Kaskadenwarnung — new */}
           {job.cascadeConflict && (
