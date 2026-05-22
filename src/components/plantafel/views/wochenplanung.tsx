@@ -122,10 +122,11 @@ export function WochenplanungView() {
     const plan = buildKIPlan(
       allUnplaced.map((j) => ({ ...j, festgepinnt: pinnedIds.has(j.id) }))
     );
+    const weekPrefix = currentWeekOffset;
     setGrid((prev) => {
       const merged: Record<SlotKey, GridJob[]> = { ...prev };
       for (const [planKey, slot] of Object.entries(plan)) {
-        const key = `${currentWeekOffset}|${planKey}`;
+        const key = `${weekPrefix}|${planKey}`;
         if (!merged[key] || merged[key].length === 0) {
           merged[key] = [slot];
         }
@@ -135,6 +136,7 @@ export function WochenplanungView() {
   }
 
   function confirmKiPlan() {
+    let placedIds: Set<string> = new Set();
     setGrid((prev) => {
       const confirmed: Record<SlotKey, GridJob[]> = {};
       for (const [key, jobs] of Object.entries(prev)) {
@@ -142,9 +144,9 @@ export function WochenplanungView() {
           (gj) => ({ ...gj, aiSuggested: false }) as ManualJob
         );
       }
+      placedIds = new Set(Object.values(prev).flat().map((gj) => gj.jobId));
       return confirmed;
     });
-    const placedIds = new Set(Object.values(grid).flat().map((gj) => gj.jobId));
     setEingang((prev) => prev.filter((j) => !placedIds.has(j.id)));
     setTasche((prev) => prev.filter((j) => !placedIds.has(j.id)));
   }
