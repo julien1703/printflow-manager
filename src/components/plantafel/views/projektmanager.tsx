@@ -23,6 +23,18 @@ function ProjectCard({ job, expanded, onToggle }: { job: Job; expanded: boolean;
         <div className="flex items-start justify-between gap-2 mb-1">
           <span className="text-[10px] font-mono text-muted-foreground">{job.id}</span>
           <span className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold shrink-0 ${k.cls}`}>{k.label}</span>
+          {job.isNew && (
+            <span
+              className="inline-block rounded-md px-2 py-0.5 text-[10px] font-bold shrink-0"
+              style={{
+                backgroundColor: "oklch(0.52 0.20 145 / 0.15)",
+                color: "oklch(0.35 0.18 145)",
+                border: "1px solid oklch(0.60 0.18 145 / 0.40)",
+              }}
+            >
+              NEU
+            </span>
+          )}
         </div>
         {/* Customer + product */}
         <div className="text-base font-semibold leading-tight mb-0.5">{job.customer}</div>
