@@ -140,9 +140,7 @@ export function WochenplanungView() {
     setGrid((prev) => {
       const confirmed: Record<SlotKey, GridJob[]> = {};
       for (const [key, jobs] of Object.entries(prev)) {
-        confirmed[key] = jobs.map(
-          (gj) => ({ ...gj, aiSuggested: false }) as ManualJob
-        );
+        confirmed[key] = jobs.map((gj) => ({ ...gj, aiSuggested: false as const }));
       }
       placedIds = new Set(Object.values(prev).flat().map((gj) => gj.jobId));
       return confirmed;
@@ -192,11 +190,8 @@ export function WochenplanungView() {
       [key]: [...(prev[key] ?? []), newGridJob],
     }));
 
-    if (eingang.find((j) => j.id === jobId)) {
-      setEingang((prev) => prev.filter((j) => j.id !== jobId));
-    } else {
-      setTasche((prev) => prev.filter((j) => j.id !== jobId));
-    }
+    setEingang((prev) => prev.filter((j) => j.id !== jobId));
+    setTasche((prev) => prev.filter((j) => j.id !== jobId));
 
     setNewlyPlaced((prev) => {
       const next = new Set(prev);
@@ -811,7 +806,7 @@ function SchichtZelle({
 
       {(() => {
         let stackOffset = 0;
-        return cellJobs.map((gridJob) => {
+        return cellJobs.map((gridJob, i) => {
           const fullJob = JOBS.find((j) => j.id === gridJob.jobId);
           const jobHeight = fullJob?.druckzeitStunden
             ? Math.max(28, (fullJob.druckzeitStunden / 8) * height)
@@ -822,7 +817,7 @@ function SchichtZelle({
           const isNew = newlyPlaced.has(slotKeyVal);
           return (
             <AuftragKarte
-              key={gridJob.jobId}
+              key={`${gridJob.jobId}-${i}`}
               gridJob={gridJob}
               fullJob={fullJob}
               top={top}
