@@ -5,6 +5,7 @@ import {
 } from "@/lib/mock-data";
 import { ZeitPill } from "../zeit-pill";
 import { KISuggestionsPanel } from "@/components/plantafel/ki-suggestions";
+import { JobBadges } from "@/components/plantafel/job-badges";
 import {
   AlertTriangle, Zap, Clock, Package, Layers, FileText,
   Truck, X, TrendingDown, ArrowRight, Activity, Printer,
@@ -47,6 +48,18 @@ function getNextJob(machine: Machine, currentId?: string): Job | undefined {
 export function ProduktionsleitungView() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(
+    () => new Set(JOBS.filter((j) => j.festgepinnt).map((j) => j.id))
+  );
+
+  function togglePinned(jobId: string) {
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
+      return next;
+    });
+  }
 
   const activeJobs = JOBS.filter(
     (j) => j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
@@ -377,6 +390,18 @@ export function ProduktionsleitungView() {
                             Konflikt
                           </span>
                         )}
+                        {j.isNew && (
+                          <span
+                            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0"
+                            style={{
+                              backgroundColor: "oklch(0.52 0.20 145 / 0.15)",
+                              color: "oklch(0.35 0.18 145)",
+                              border: "1px solid oklch(0.60 0.18 145 / 0.40)",
+                            }}
+                          >
+                            NEU
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] text-muted-foreground font-mono">{j.id}</span>
                     </div>
@@ -416,7 +441,11 @@ export function ProduktionsleitungView() {
       </div>
 
       {selectedJob && (
-        <AuftragDrawer job={selectedJob} onClose={() => setSelectedJob(null)} />
+        <AuftragDrawer
+          job={{ ...selectedJob, festgepinnt: pinnedIds.has(selectedJob.id) }}
+          onClose={() => setSelectedJob(null)}
+          onToggleFestgepinnt={() => togglePinned(selectedJob.id)}
+        />
       )}
     </div>
   );
@@ -571,7 +600,15 @@ function MachineKachel({
   );
 }
 
-function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
+function AuftragDrawer({
+  job,
+  onClose,
+  onToggleFestgepinnt,
+}: {
+  job: Job;
+  onClose: () => void;
+  onToggleFestgepinnt?: () => void;
+}) {
   const meta = MACHINE_META[job.machine];
   const currentIdx = PHASES.indexOf(job.phase);
 
@@ -615,6 +652,7 @@ function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
               </span>
             )}
           </div>
+          <JobBadges job={job} onToggleFestgepinnt={onToggleFestgepinnt} />
         </div>
 
         <div className="px-7 py-5 border-b border-border">
@@ -700,6 +738,25 @@ function AuftragDrawer({ job, onClose }: { job: Job; onClose: () => void }) {
             {job.paper && <Row label="Papier" value={job.paper} />}
             {job.quantity && <Row label="Auflage" value={job.quantity} mono />}
             {job.instructions && <Row label="Spezifikation" value={job.instructions} />}
+            {job.grammatur !== undefined && (
+              <Row label="Grammatur" value={`${job.grammatur} g/m²`} mono />
+            )}
+            {job.druckzeitStunden !== undefined && (
+              <Row label="Berechnete Druckzeit" value={`~${job.druckzeitStunden} h`} mono />
+            )}
+            {job.dispersionslack !== undefined && (
+              <Row
+                label="Dispersionslack"
+                value={
+                  <span style={{ color: job.dispersionslack ? "oklch(0.38 0.14 153)" : "var(--muted-foreground)" }}>
+                    {job.dispersionslack ? "Ja — Lack-Rüstzeit beachten" : "Nein"}
+                  </span>
+                }
+              />
+            )}
+            {job.sonderfarbe && (
+              <Row label="Sonderfarbe" value={job.sonderfarbe} />
+            )}
           </Section>
 
           {job.finishing && (
