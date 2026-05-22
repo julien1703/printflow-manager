@@ -1,10 +1,11 @@
 import { useState } from "react";
 import {
-  JOBS, MACHINE_META, WEEKDAYS, SLOTS,
+  JOBS, MACHINE_META, WEEKDAYS, SLOTS_BY_MACHINE,
   TODAY_INDEX,
   type Job, type Machine, type Phase, type Weekday, type Slot,
 } from "@/lib/mock-data";
 import { Check, Sparkles, X } from "lucide-react";
+import { JobBadges } from "@/components/plantafel/job-badges";
 
 const ALL_MACHINES: Machine[] = ["CD", "RZK", "SM5", "Digi"];
 
@@ -17,6 +18,7 @@ interface PlacedJob {
   delivery: string;
   phase: Phase;
   aiSuggested: boolean;
+  reason?: string;
 }
 
 function slotKey(machine: Machine, day: Weekday, slot: Slot): SlotKey {
@@ -45,7 +47,7 @@ function buildKiPlan(jobs: Job[]): Record<SlotKey, PlacedJob> {
     let placed = false;
     for (const day of WEEKDAYS) {
       if (placed) break;
-      for (const slot of SLOTS) {
+      for (const slot of SLOTS_BY_MACHINE[job.machine]) {
         const key = slotKey(job.machine, day, slot);
         if (!plan[key]) {
           plan[key] = {
@@ -70,6 +72,18 @@ export function WochenplanungView() {
   const [tasche, setTasche] = useState<Job[]>(TASCHE_JOBS);
   const [dragMachine, setDragMachine] = useState<Machine | null>(null);
   const [newlyPlaced, setNewlyPlaced] = useState<Set<SlotKey>>(new Set());
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(
+    () => new Set(JOBS.filter((j) => j.festgepinnt).map((j) => j.id))
+  );
+
+  function togglePinned(jobId: string) {
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
+      return next;
+    });
+  }
   const hasKiSlots = Object.values(grid).some((s) => s.aiSuggested);
 
   function handleKiPlan() {
@@ -111,6 +125,7 @@ export function WochenplanungView() {
     const jobId = e.dataTransfer.getData("jobId");
     const job = tasche.find((j) => j.id === jobId);
     if (!job) return;
+    if (!SLOTS_BY_MACHINE[machine].includes(slot)) return;
     const key = slotKey(machine, day, slot);
     if (grid[key]) return;
     setGrid((prev) => ({
@@ -222,7 +237,7 @@ export function WochenplanungView() {
                         key={day}
                         className={`border-l border-border p-1.5 space-y-1 ${isToday ? "bg-[oklch(0.97_0.06_95)]" : ""}`}
                       >
-                        {SLOTS.map((slot) => {
+                        {SLOTS_BY_MACHINE[machine].map((slot) => {
                           const key = slotKey(machine, day, slot);
                           const placed = grid[key];
                           return (
@@ -286,10 +301,11 @@ export function WochenplanungView() {
               return (
                 <TascheCard
                   key={job.id}
-                  job={job}
+                  job={{ ...job, festgepinnt: pinnedIds.has(job.id) }}
                   color={color}
                   onDragStart={(machine) => setDragMachine(machine)}
                   onDragEnd={handleDragEnd}
+                  onToggleFestgepinnt={() => togglePinned(job.id)}
                 />
               );
             })}
@@ -360,6 +376,11 @@ function GridSlotCell({
           </div>
           <div className="text-[11px] font-bold leading-tight truncate">{placed.customer}</div>
           <div className="text-[9px] text-muted-foreground font-mono mt-0.5">{placed.delivery}</div>
+          {placed.aiSuggested && placed.reason && (
+            <div className="text-[8px] italic text-muted-foreground mt-1 leading-tight opacity-80">
+              {placed.reason}
+            </div>
+          )}
         </div>
         <button
           type="button"
@@ -400,12 +421,13 @@ function GridSlotCell({
 }
 
 function TascheCard({
-  job, color, onDragStart, onDragEnd,
+  job, color, onDragStart, onDragEnd, onToggleFestgepinnt,
 }: {
   job: Job;
   color: string;
   onDragStart: (machine: Machine) => void;
   onDragEnd: () => void;
+  onToggleFestgepinnt?: () => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   return (
@@ -436,9 +458,21 @@ function TascheCard({
             {job.machine}
           </span>
           <span className="text-[9px] text-muted-foreground font-mono">{job.delivery}</span>
+          {job.isNew && (
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
+              style={{
+                backgroundColor: "oklch(0.52 0.20 145 / 0.15)",
+                color: "oklch(0.35 0.18 145)",
+              }}
+            >
+              NEU
+            </span>
+          )}
         </div>
         <div className="text-sm font-semibold leading-tight">{job.customer}</div>
         <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{job.id}</div>
+        <JobBadges job={job} onToggleFestgepinnt={onToggleFestgepinnt} compact />
       </div>
     </div>
   );
