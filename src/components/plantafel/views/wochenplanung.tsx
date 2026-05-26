@@ -864,6 +864,30 @@ function SchichtZelle({
   );
 }
 
+// ─── FlagChip ────────────────────────────────────────────────────────────────
+
+function FlagChip({
+  label,
+  accent,
+}: {
+  label: string;
+  accent?: string;
+}) {
+  return (
+    <span
+      className="text-[7px] rounded px-1 py-0.5 font-medium leading-none"
+      style={{
+        background: accent
+          ? `color-mix(in oklab, ${accent} 15%, white)`
+          : "oklch(1 0 0 / 0.55)",
+        color: accent ?? "oklch(0.40 0.04 0)",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
 // ─── AuftragKarte ────────────────────────────────────────────────────────────
 
 function AuftragKarte({
@@ -891,7 +915,10 @@ function AuftragKarte({
 }) {
   const style = fullJob
     ? cardStyle(fullJob, isPinned)
-    : { background: "oklch(0.93 0.07 145 / 0.9)", border: "1.5px solid oklch(0.55 0.18 145)" };
+    : {
+        background: "oklch(0.93 0.07 145 / 0.9)",
+        border: "1.5px solid oklch(0.55 0.18 145)",
+      };
 
   const aiStyle: React.CSSProperties = isAi
     ? {
@@ -900,9 +927,16 @@ function AuftragKarte({
       }
     : {};
 
+  const deliveryColor =
+    fullJob?.status === "Hinterher"
+      ? "oklch(0.52 0.20 25)"
+      : fullJob?.status === "Knapp"
+      ? "oklch(0.55 0.16 55)"
+      : "oklch(0.45 0.04 0)";
+
   return (
     <div
-      className={`absolute group cursor-pointer rounded-lg overflow-hidden ${
+      className={`absolute group cursor-pointer rounded-lg overflow-hidden transition-all duration-150 hover:shadow-[0_3px_12px_oklch(0_0_0/0.18)] hover:brightness-[1.03] ${
         isNew ? "pop-in" : ""
       } ${isAi ? "ki-pulse" : ""}`}
       style={{
@@ -916,47 +950,56 @@ function AuftragKarte({
       onClick={onClick}
     >
       {!isAi && (
-        <div style={{ height: 2, backgroundColor: color, flexShrink: 0 }} />
+        <div style={{ height: 3, backgroundColor: color, flexShrink: 0 }} />
       )}
-      <div className="px-1.5 py-1 h-full overflow-hidden">
-        {height >= 48 && (
+
+      <div className="px-1.5 pt-1 pb-0.5 overflow-hidden flex flex-col" style={{ height: height - (isAi ? 0 : 3) }}>
+        {height >= 36 && (
           <div
-            className="text-[10px] font-semibold truncate"
+            className="text-[11px] font-bold truncate leading-tight"
             style={{ color: isAi ? "oklch(0.40 0.22 258)" : undefined }}
           >
             {isAi && "✦ "}
             {gridJob.customer}
           </div>
         )}
-        {height >= 64 && fullJob && (
-          <div className="text-[9px] text-muted-foreground font-mono mt-0.5">
-            {fullJob.druckzeitStunden}h · {gridJob.delivery}
+
+        {height >= 52 && fullJob && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="text-[9px] font-mono text-muted-foreground">
+              {fullJob.druckzeitStunden}h
+            </span>
+            <span className="text-[9px] text-muted-foreground/40">·</span>
+            <span className="text-[9px] font-mono" style={{ color: deliveryColor }}>
+              {gridJob.delivery}
+            </span>
           </div>
         )}
-        {height >= 80 && fullJob && (
-          <div className="flex flex-wrap gap-0.5 mt-0.5">
-            {fullJob.dispersionslack && (
-              <span className="text-[7px] bg-white/60 rounded px-0.5">Lack</span>
-            )}
+
+        {height >= 68 && fullJob && (
+          <div className="flex flex-wrap gap-0.5 mt-auto pb-0.5">
+            {fullJob.dispersionslack && <FlagChip label="Lack" />}
             {fullJob.grammatur && (
-              <span className="text-[7px] bg-white/60 rounded px-0.5">
-                {fullJob.grammatur}g
-              </span>
+              <FlagChip label={`${fullJob.grammatur}g`} />
             )}
             {fullJob.sonderfarbe && (
-              <span className="text-[7px] bg-white/60 rounded px-0.5">Sonderfarbe</span>
+              <FlagChip label="Sonderf." accent="oklch(0.62 0.16 50)" />
             )}
-            {isPinned && (
-              <span className="text-[7px] bg-white/60 rounded px-0.5">Gepinnt</span>
+            {isPinned && <FlagChip label="Gepinnt" accent="oklch(0.55 0.22 280)" />}
+            {(fullJob.prioritaet === "eilig" ||
+              fullJob.prioritaet === "express") && (
+              <FlagChip label={fullJob.prioritaet} accent="oklch(0.62 0.16 50)" />
             )}
           </div>
         )}
+
         {isAi && gridJob.aiSuggested && gridJob.reason && height >= 80 && (
           <div className="text-[7px] italic text-muted-foreground mt-0.5 leading-tight opacity-80 overflow-hidden">
             {gridJob.reason}
           </div>
         )}
       </div>
+
       <button
         type="button"
         onClick={(e) => {
