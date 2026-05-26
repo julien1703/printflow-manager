@@ -620,21 +620,26 @@ function EingangStreifen({
   return (
     <div
       className="shrink-0 border-b border-border px-6 py-3"
-      style={{ background: "oklch(0.97 0.02 255 / 0.5)" }}
+      style={{
+        background: "oklch(0.97 0.02 255 / 0.6)",
+        borderLeft: "3px solid oklch(0.60 0.14 255)",
+      }}
     >
-      <div className="flex items-center gap-3 mb-2">
-        <span className="text-xs font-bold uppercase tracking-[0.14em]">
-          Eingang
-        </span>
-        <span
-          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-          style={{
-            background: "oklch(0.70 0.04 255 / 0.3)",
-            color: "oklch(0.40 0.10 255)",
-          }}
-        >
-          {jobs.length}
-        </span>
+      <div className="flex items-center gap-3 mb-2.5">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-[0.14em] text-foreground">
+            Neue Aufträge
+          </span>
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-bold pulse-chip"
+            style={{
+              background: "oklch(0.55 0.18 255 / 0.15)",
+              color: "oklch(0.38 0.16 255)",
+            }}
+          >
+            {jobs.length}
+          </span>
+        </div>
         <button
           type="button"
           onClick={onKiVorschlag}
@@ -648,7 +653,7 @@ function EingangStreifen({
           KI-Vorschlag
         </button>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2.5 overflow-x-auto pb-1">
         {jobs.map((job) => (
           <EingangKarte
             key={job.id}
@@ -672,6 +677,8 @@ function EingangKarte({
   onDragEnd: () => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
+  const machineColor = MACHINE_META[job.machine].color;
+
   return (
     <div
       draggable
@@ -684,46 +691,89 @@ function EingangKarte({
         setIsDragging(false);
         onDragEnd();
       }}
-      className={`shrink-0 rounded-xl px-3 py-2 cursor-grab select-none transition ${
-        isDragging ? "opacity-40" : "hover:opacity-90"
+      className={`shrink-0 rounded-xl select-none transition-all overflow-hidden ${
+        isDragging
+          ? "opacity-40 scale-95 cursor-grabbing"
+          : "cursor-grab hover:shadow-md hover:-translate-y-0.5 neu-ring"
       }`}
       style={{
-        background: "oklch(0.95 0.02 255)",
-        border: "1.5px solid oklch(0.70 0.04 255)",
-        minWidth: 140,
+        background: "oklch(0.97 0.02 255)",
+        border: "1.5px solid oklch(0.65 0.10 255)",
+        minWidth: 152,
       }}
     >
-      <div className="flex items-center gap-1.5 mb-1">
-        <span
-          className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-          style={{
-            background: "oklch(0.70 0.04 255 / 0.25)",
-            color: "oklch(0.40 0.10 255)",
-          }}
-        >
-          {job.machine}
-        </span>
-        <span
-          className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-          style={{
-            background: "oklch(0.52 0.20 145 / 0.15)",
-            color: "oklch(0.35 0.18 145)",
-          }}
-        >
-          NEU
-        </span>
-      </div>
-      <div className="text-xs font-semibold truncate max-w-32.5">
-        {job.customer}
-      </div>
-      <div className="text-[9px] text-muted-foreground font-mono mt-0.5">
-        {job.druckzeitStunden}h · {job.delivery}
-      </div>
-      {job.sonderfarbe && (
-        <div className="text-[8px] mt-0.5" style={{ color: "oklch(0.55 0.16 50)" }}>
-          {job.sonderfarbe}
+      <div style={{ height: 3, backgroundColor: machineColor }} />
+      <div className="px-3 py-2">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span
+            className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+            style={{
+              backgroundColor: `color-mix(in oklab, ${machineColor} 15%, white)`,
+              color: machineColor,
+            }}
+          >
+            {job.machine}
+          </span>
+          <span
+            className="rounded-full px-1.5 py-0.5 text-[8px] font-bold pulse-chip"
+            style={{
+              background: "oklch(0.35 0.18 145 / 0.12)",
+              color: "oklch(0.30 0.16 145)",
+            }}
+          >
+            NEU
+          </span>
+          {job.prioritaet && job.prioritaet !== "normal" && (
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
+              style={{
+                background: "oklch(0.93 0.12 50 / 0.25)",
+                color: "oklch(0.50 0.18 50)",
+              }}
+            >
+              {job.prioritaet}
+            </span>
+          )}
         </div>
-      )}
+
+        <div className="text-xs font-bold truncate" style={{ maxWidth: 140 }}>
+          {job.customer}
+        </div>
+
+        <div className="flex items-center gap-1.5 mt-1">
+          <span className="text-[9px] font-mono text-muted-foreground">
+            {job.druckzeitStunden}h
+          </span>
+          <span className="text-[9px] text-muted-foreground/40">·</span>
+          <span
+            className="text-[9px] font-mono"
+            style={{ color: "oklch(0.50 0.08 25)" }}
+          >
+            {job.delivery}
+          </span>
+        </div>
+
+        {(job.dispersionslack || job.sonderfarbe) && (
+          <div className="flex gap-1 mt-1 flex-wrap">
+            {job.dispersionslack && (
+              <span className="text-[7px] bg-white/70 rounded px-1 py-0.5 text-muted-foreground font-medium">
+                Lack
+              </span>
+            )}
+            {job.sonderfarbe && (
+              <span
+                className="text-[7px] rounded px-1 py-0.5 font-medium"
+                style={{
+                  background: "oklch(0.93 0.12 50 / 0.18)",
+                  color: "oklch(0.50 0.16 50)",
+                }}
+              >
+                {job.sonderfarbe}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

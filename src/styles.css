@@ -285,6 +285,14 @@
     animation: pulse-chip 2s ease-in-out infinite;
   }
 
+  @keyframes neu-ring {
+    0%, 100% { box-shadow: 0 0 0 0 oklch(0.52 0.18 255 / 0.45); }
+    50%       { box-shadow: 0 0 0 5px oklch(0.52 0.18 255 / 0); }
+  }
+  .neu-ring {
+    animation: neu-ring 2.2s ease-in-out infinite;
+  }
+
   /* Shimmer bar (inline shimmer on an element, not ::after pseudo) */
   @keyframes shimmer-move {
     0% { background-position: -200% center; }
