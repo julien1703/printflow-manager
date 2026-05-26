@@ -415,6 +415,7 @@ export function WochenplanungView() {
                               className={`border-l border-border p-1.5 ${
                                 isToday ? "bg-[oklch(0.97_0.06_95)]" : ""
                               }`}
+                              style={isToday ? { borderLeft: "3px solid oklch(0.72 0.14 85)" } : undefined}
                             >
                               {slots.map((slot) => {
                                 const key = slotKey(currentWeekOffset, machine, day, slot);
@@ -479,6 +480,7 @@ export function WochenplanungView() {
                         className={`border-l border-border p-1.5 space-y-1 ${
                           isToday ? "bg-[oklch(0.97_0.06_95/0.5)]" : ""
                         }`}
+                        style={isToday ? { borderLeft: "3px solid oklch(0.72 0.14 85)" } : undefined}
                       >
                         {slots.map((slot) => {
                           const key = slotKey(currentWeekOffset, machine, day, slot);
@@ -1114,6 +1116,12 @@ function TascheCard({
   onToggleFestgepinnt?: () => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
+
+  const deliveryColor =
+    job.status === "Hinterher"
+      ? "oklch(0.52 0.20 25)"
+      : "oklch(0.45 0.04 0)";
+
   return (
     <div
       draggable
@@ -1146,7 +1154,10 @@ function TascheCard({
           >
             {job.machine}
           </span>
-          <span className="text-[9px] text-muted-foreground font-mono">
+          <span
+            className="text-[9px] font-mono font-semibold"
+            style={{ color: deliveryColor }}
+          >
             {job.delivery}
           </span>
           {job.prioritaet && job.prioritaet !== "normal" && (
@@ -1161,19 +1172,37 @@ function TascheCard({
             </span>
           )}
           {job.festgepinnt && (
-            <span className="text-[9px] text-muted-foreground">gepinnt</span>
+            <span className="text-[8px] text-muted-foreground font-medium">
+              Gepinnt
+            </span>
           )}
         </div>
-        <div className="text-xs font-semibold leading-tight truncate">
-          {job.customer}
+
+        <div className="text-xs font-bold leading-tight truncate">{job.customer}</div>
+
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          {job.druckzeitStunden && (
+            <span className="text-[9px] font-mono text-muted-foreground">
+              {job.druckzeitStunden}h
+            </span>
+          )}
+          {job.dispersionslack && (
+            <span className="text-[8px] bg-white/60 rounded px-1 py-0.5 text-muted-foreground font-medium">
+              Lack
+            </span>
+          )}
+          {job.sonderfarbe && (
+            <span
+              className="text-[8px] rounded px-1 py-0.5 font-medium"
+              style={{
+                background: "oklch(0.93 0.12 50 / 0.18)",
+                color: "oklch(0.50 0.16 50)",
+              }}
+            >
+              Sonderf.
+            </span>
+          )}
         </div>
-        {job.druckzeitStunden && (
-          <div className="text-[9px] text-muted-foreground font-mono mt-0.5">
-            {job.druckzeitStunden}h
-            {job.dispersionslack ? " · Lack" : ""}
-            {job.sonderfarbe ? " · Sonderf." : ""}
-          </div>
-        )}
       </div>
     </div>
   );
