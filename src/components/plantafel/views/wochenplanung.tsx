@@ -930,8 +930,6 @@ function AuftragKarte({
   const deliveryColor =
     fullJob?.status === "Hinterher"
       ? "oklch(0.52 0.20 25)"
-      : fullJob?.status === "Knapp"
-      ? "oklch(0.55 0.16 55)"
       : "oklch(0.45 0.04 0)";
 
   return (
