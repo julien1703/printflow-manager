@@ -413,7 +413,7 @@ export function WochenplanungView() {
                             <div
                               key={day}
                               className={`border-l border-border p-1.5 ${
-                                isToday ? "bg-[oklch(0.97_0.06_95)]" : ""
+                                isToday ? "bg-[oklch(0.97_0.06_85)]" : ""
                               }`}
                               style={isToday ? { borderLeft: "3px solid oklch(0.72 0.14 85)" } : undefined}
                             >
@@ -478,7 +478,7 @@ export function WochenplanungView() {
                       <div
                         key={day}
                         className={`border-l border-border p-1.5 space-y-1 ${
-                          isToday ? "bg-[oklch(0.97_0.06_95/0.5)]" : ""
+                          isToday ? "bg-[oklch(0.97_0.06_85/0.5)]" : ""
                         }`}
                         style={isToday ? { borderLeft: "3px solid oklch(0.72 0.14 85)" } : undefined}
                       >
