@@ -214,6 +214,47 @@ export function AuftragDrawer({
             )}
           </Section>
 
+          {/* Hinweis-Boxen */}
+          {(job.dispersionslack || job.sonderfarbe || job.paper?.includes("Metallic") || (!!job.sonderfarbe && !job.paper?.includes("gestrichen"))) && (
+            <div className="space-y-2">
+              {job.dispersionslack && (
+                <div
+                  className="rounded-lg px-3.5 py-2.5 text-xs space-y-1"
+                  style={{ background: "oklch(0.95 0.04 255)", color: "oklch(0.45 0.18 255)" }}
+                >
+                  <div className="font-semibold">Dispersionslack aktiv</div>
+                  <div className="opacity-80 leading-relaxed">
+                    Lackwerk-Reinigung nach Verwendung: 30 Min bis 3h<br />
+                    Tipp: Lackaufträge gruppieren um Rüstzeit zu sparen
+                  </div>
+                </div>
+              )}
+              {job.sonderfarbe && (
+                <div
+                  className="rounded-lg px-3.5 py-2.5 text-xs space-y-1"
+                  style={{ background: "oklch(0.96 0.06 55)", color: "oklch(0.45 0.18 55)" }}
+                >
+                  <div className="font-semibold">Sonderfarbe: {job.sonderfarbe}</div>
+                  <div className="opacity-80 leading-relaxed">
+                    Lagerbestand prüfen! Mind. 2 Tage Vorlauf für Bestellung.<br />
+                    Einmal An- und Abwaschen einplanen (+30–60 Min)
+                  </div>
+                </div>
+              )}
+              {(job.paper?.includes("Metallic") || (!!job.sonderfarbe && !job.paper?.includes("gestrichen"))) && (
+                <div
+                  className="rounded-lg px-3.5 py-2.5 text-xs space-y-1"
+                  style={{ background: "oklch(0.97 0.05 85)", color: "oklch(0.42 0.16 85)" }}
+                >
+                  <div className="font-semibold">Trocknungshinweis</div>
+                  <div className="opacity-80">
+                    Mind. 2 Tage Trocknungszeit vor Weiterverarbeitung
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Weiterverarbeitung — extended */}
           {(job.finishing || job.weiterverarbeitungStunden !== undefined) && (
             <Section icon={<Package className="h-3.5 w-3.5" />} title="Weiterverarbeitung">
@@ -331,6 +372,25 @@ export function AuftragDrawer({
               </div>
             </Section>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-7 py-4 border-t border-border flex gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => { console.log("Auftrag verschieben:", job.id); onClose(); }}
+            className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition"
+          >
+            Auftrag verschieben
+          </button>
+          <button
+            type="button"
+            onClick={() => { console.log("Als gedruckt markieren:", job.id); onClose(); }}
+            className="flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+            style={{ background: "oklch(0.52 0.14 145)" }}
+          >
+            Als gedruckt markieren
+          </button>
         </div>
       </div>
     </>
