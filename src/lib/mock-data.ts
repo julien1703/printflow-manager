@@ -94,7 +94,7 @@ export const JOBS: Job[] = [
     paper: "Bilderdruck matt 135g",
     quantity: "5.000 Stk.",
     instructions: "4/4-farbig, Sonderfarbe Pantone 286 C",
-    projectManager: "Müller",
+    projectManager: "K. M.",
     dispersionslack: true,
     sonderfarbe: "Pantone 286 C",
     grammatur: 135,
@@ -123,7 +123,7 @@ export const JOBS: Job[] = [
     paper: "Offset 80g weiß",
     quantity: "2.000 Stk.",
     instructions: "1/1-farbig, Rückendrahtheftung",
-    projectManager: "Schmidt",
+    projectManager: "T. S.",
   },
   {
     id: "#2024-0849",
@@ -147,7 +147,7 @@ export const JOBS: Job[] = [
     paper: "Digitaldruck 170g",
     quantity: "10.000 Stk.",
     instructions: "4/4-farbig, Wickelfalz",
-    projectManager: "Müller",
+    projectManager: "K. M.",
   },
   {
     id: "#2024-0850",
@@ -174,7 +174,7 @@ export const JOBS: Job[] = [
     paper: "Plakardruck 135g",
     quantity: "1.500 Stk.",
     instructions: "5-farbig inkl. Glanzlack",
-    projectManager: "Müller",
+    projectManager: "K. M.",
     dispersionslack: false,
     sonderfarbe: "Pantone 485 C",
     grammatur: 135,
@@ -202,7 +202,7 @@ export const JOBS: Job[] = [
     paper: "Recyclingpapier 90g",
     quantity: "800 Stk.",
     instructions: "4/0 einseitig, Klebebindung",
-    projectManager: "Schmidt",
+    projectManager: "T. S.",
   },
   {
     id: "#2024-0852",
@@ -228,7 +228,7 @@ export const JOBS: Job[] = [
     paper: "Bilderdruck glänzend 150g",
     quantity: "3.000 Stk.",
     instructions: "4/4-farbig, Klebebindung A4",
-    projectManager: "Müller",
+    projectManager: "K. M.",
   },
   {
     id: "#2024-0853",
@@ -252,7 +252,7 @@ export const JOBS: Job[] = [
     paper: "Naturpapier 120g",
     quantity: "2.000 Stk.",
     instructions: "5-farbig inkl. Folienprägung",
-    projectManager: "Schmidt",
+    projectManager: "T. S.",
     dispersionslack: true,
     grammatur: 120,
     druckzeitStunden: 5.0,
@@ -276,7 +276,7 @@ export const JOBS: Job[] = [
     paper: "Digitaldruck 80g",
     quantity: "20.000 Stk.",
     instructions: "4/4-farbig, Rückendrahtheftung",
-    projectManager: "Müller",
+    projectManager: "K. M.",
   },
   {
     id: "#2024-0855",
@@ -300,7 +300,7 @@ export const JOBS: Job[] = [
     paper: "Naturpapier 150g",
     quantity: "5.000 Stk.",
     instructions: "4/4-farbig, Wickelfalz",
-    projectManager: "Schmidt",
+    projectManager: "T. S.",
   },
   {
     id: "#2024-0856",
@@ -324,7 +324,7 @@ export const JOBS: Job[] = [
     paper: "Offset 100g weiß",
     quantity: "1.200 Stk.",
     instructions: "1/1-farbig, Klebebindung",
-    projectManager: "Müller",
+    projectManager: "K. M.",
   },
   {
     id: "#2024-0857",
@@ -344,7 +344,7 @@ export const JOBS: Job[] = [
     paper: "Chromokarton 350g",
     quantity: "500 Stk.",
     instructions: "4/4-farbig, Ecken abrunden",
-    projectManager: "Schmidt",
+    projectManager: "T. S.",
   },
   {
     id: "#2024-0858",
@@ -368,7 +368,7 @@ export const JOBS: Job[] = [
     paper: "Bilderdruck matt 170g",
     quantity: "1.500 Stk.",
     instructions: "4/4-farbig, Klebebindung, Dispersionslack",
-    projectManager: "Schmidt",
+    projectManager: "T. S.",
     dispersionslack: true,
     grammatur: 170,
     druckzeitStunden: 3.5,
@@ -396,7 +396,7 @@ export const JOBS: Job[] = [
     paper: "Metallic-Karton 250g",
     quantity: "800 Stk.",
     instructions: "5-farbig inkl. Sonderfarbe, Lacküberzug",
-    projectManager: "Müller",
+    projectManager: "K. M.",
     dispersionslack: false,
     sonderfarbe: "Pantone 877 C Silber",
     grammatur: 250,
@@ -675,10 +675,10 @@ export const JOBS: Job[] = [
 export const UPCOMING = JOBS.filter((j) => j.orderStatus === "Auftragseingang");
 
 export const MESSAGES = [
-  { from: "H. Seifert",  text: "Rossmann WV-Slot Di jetzt frei — umplanen?", unread: true },
-  { from: "A. Batt",     text: "Rossmann-Versand 21.05. storniert", unread: true },
-  { from: "K. Weber",    text: "Technik GmbH: Freigabe bis 17:00 ausstehend", unread: true },
-  { from: "T. Schmidt",  text: "Schulz Textil Druckfreigabe erteilt", unread: false },
+  { from: "H. S.",  text: "Rossmann WV-Slot Di jetzt frei — umplanen?", unread: true },
+  { from: "A. B.",  text: "Rossmann-Versand 21.05. storniert", unread: true },
+  { from: "K. W.", text: "Technik GmbH: Freigabe bis 17:00 ausstehend", unread: true },
+  { from: "T. S.", text: "Schulz Textil Druckfreigabe erteilt", unread: false },
 ];
 
 export const AI_SUGGESTIONS = [
@@ -801,12 +801,12 @@ export const GF_KPIS = {
 export type RoleKey = "produktionsleitung" | "buchbinderei" | "logistik" | "druckvorstufe" | "projektmanager" | "geschaeftsfuehrung";
 
 export const ROLES: { key: RoleKey; name: string; person: string; nav: string[] }[] = [
-  { key: "produktionsleitung", name: "Produktionsleitung", person: "G. Maisch",  nav: ["Übersicht", "Wochenplan"] },
-  { key: "projektmanager",     name: "Projektmanager",     person: "T. Schmidt", nav: ["Übersicht"] },
-  { key: "druckvorstufe",      name: "Druckvorstufe",      person: "K. Weber",   nav: ["Übersicht"] },
-  { key: "buchbinderei",       name: "Buchbinderei / WV",  person: "H. Seifert", nav: ["Übersicht", "Wochenplan"] },
-  { key: "logistik",           name: "Logistik & Versand", person: "A. Batt",    nav: ["Übersicht"] },
-  { key: "geschaeftsfuehrung", name: "Geschäftsführung",   person: "R. Pfitzer", nav: ["Übersicht"] },
+  { key: "produktionsleitung", name: "Produktionsleitung", person: "G. M.",  nav: ["Übersicht", "Wochenplan"] },
+  { key: "projektmanager",     name: "Projektmanager",     person: "T. S.", nav: ["Übersicht"] },
+  { key: "druckvorstufe",      name: "Druckvorstufe",      person: "K. W.",   nav: ["Übersicht"] },
+  { key: "buchbinderei",       name: "Buchbinderei / WV",  person: "H. S.", nav: ["Übersicht", "Wochenplan"] },
+  { key: "logistik",           name: "Logistik & Versand", person: "A. B.",    nav: ["Übersicht"] },
+  { key: "geschaeftsfuehrung", name: "Geschäftsführung",   person: "R. P.", nav: ["Übersicht"] },
 ];
 
 /* ========== Live print status ========== */
@@ -852,41 +852,41 @@ export interface WeekSlot {
 
 export const WEEK_PLAN: WeekSlot[] = [
   // CD: Schulz Textil (0855), Mustermann (0847), Becker & Partner (0851)
-  { machine: "CD", day: "Mo", slot: "Früh", jobId: "#2024-0855", customer: "Schulz Textil",    phase: "Vorstufe",         ownerPM: "Schmidt" },
-  { machine: "CD", day: "Mo", slot: "Spät", jobId: "#2024-0847", customer: "Mustermann GmbH",  phase: "Vorstufe",         ownerPM: "Müller" },
-  { machine: "CD", day: "Di", slot: "Früh", jobId: "#2024-0847", customer: "Mustermann GmbH",  phase: "Im Druck",         ownerPM: "Müller" },
-  { machine: "CD", day: "Di", slot: "Spät", jobId: "#2024-0847", customer: "Mustermann GmbH",  phase: "Im Druck",         ownerPM: "Müller" },
-  { machine: "CD", day: "Mi", slot: "Früh", jobId: "#2024-0851", customer: "Becker & Partner", phase: "Weiterverarbeitung", ownerPM: "Schmidt" },
-  { machine: "CD", day: "Mi", slot: "Spät", jobId: "#2024-0855", customer: "Schulz Textil",    phase: "Im Druck",         ownerPM: "Schmidt" },
-  { machine: "CD", day: "Do", slot: "Früh", jobId: "#2024-0855", customer: "Schulz Textil",    phase: "Im Druck",         ownerPM: "Schmidt" },
+  { machine: "CD", day: "Mo", slot: "Früh", jobId: "#2024-0855", customer: "Schulz Textil",    phase: "Vorstufe",         ownerPM: "T. S." },
+  { machine: "CD", day: "Mo", slot: "Spät", jobId: "#2024-0847", customer: "Mustermann GmbH",  phase: "Vorstufe",         ownerPM: "K. M." },
+  { machine: "CD", day: "Di", slot: "Früh", jobId: "#2024-0847", customer: "Mustermann GmbH",  phase: "Im Druck",         ownerPM: "K. M." },
+  { machine: "CD", day: "Di", slot: "Spät", jobId: "#2024-0847", customer: "Mustermann GmbH",  phase: "Im Druck",         ownerPM: "K. M." },
+  { machine: "CD", day: "Mi", slot: "Früh", jobId: "#2024-0851", customer: "Becker & Partner", phase: "Weiterverarbeitung", ownerPM: "T. S." },
+  { machine: "CD", day: "Mi", slot: "Spät", jobId: "#2024-0855", customer: "Schulz Textil",    phase: "Im Druck",         ownerPM: "T. S." },
+  { machine: "CD", day: "Do", slot: "Früh", jobId: "#2024-0855", customer: "Schulz Textil",    phase: "Im Druck",         ownerPM: "T. S." },
   { machine: "CD", day: "Do", slot: "Spät" },
   { machine: "CD", day: "Fr", slot: "Früh" },
   { machine: "CD", day: "Fr", slot: "Spät" },
   // RZK: Kaiser Industries (0856), Technik GmbH (0852), Schmidt Verlag (0848)
-  { machine: "RZK", day: "Mo", slot: "Früh", jobId: "#2024-0856", customer: "Kaiser Industries", phase: "Im Druck", ownerPM: "Müller" },
-  { machine: "RZK", day: "Mo", slot: "Spät", jobId: "#2024-0856", customer: "Kaiser Industries", phase: "Im Druck", ownerPM: "Müller" },
-  { machine: "RZK", day: "Di", slot: "Früh", jobId: "#2024-0852", customer: "Technik GmbH",      phase: "Vorstufe", ownerPM: "Müller" },
-  { machine: "RZK", day: "Di", slot: "Spät", jobId: "#2024-0852", customer: "Technik GmbH",      phase: "Im Druck", ownerPM: "Müller" },
-  { machine: "RZK", day: "Mi", slot: "Früh", jobId: "#2024-0848", customer: "Schmidt Verlag",    phase: "Vorstufe", ownerPM: "Schmidt" },
-  { machine: "RZK", day: "Mi", slot: "Spät", jobId: "#2024-0848", customer: "Schmidt Verlag",    phase: "Im Druck", ownerPM: "Schmidt" },
+  { machine: "RZK", day: "Mo", slot: "Früh", jobId: "#2024-0856", customer: "Kaiser Industries", phase: "Im Druck", ownerPM: "K. M." },
+  { machine: "RZK", day: "Mo", slot: "Spät", jobId: "#2024-0856", customer: "Kaiser Industries", phase: "Im Druck", ownerPM: "K. M." },
+  { machine: "RZK", day: "Di", slot: "Früh", jobId: "#2024-0852", customer: "Technik GmbH",      phase: "Vorstufe", ownerPM: "K. M." },
+  { machine: "RZK", day: "Di", slot: "Spät", jobId: "#2024-0852", customer: "Technik GmbH",      phase: "Im Druck", ownerPM: "K. M." },
+  { machine: "RZK", day: "Mi", slot: "Früh", jobId: "#2024-0848", customer: "Schmidt Verlag",    phase: "Vorstufe", ownerPM: "T. S." },
+  { machine: "RZK", day: "Mi", slot: "Spät", jobId: "#2024-0848", customer: "Schmidt Verlag",    phase: "Im Druck", ownerPM: "T. S." },
   { machine: "RZK", day: "Do", slot: "Früh" },
   { machine: "RZK", day: "Do", slot: "Spät" },
   { machine: "RZK", day: "Fr", slot: "Früh" },
   { machine: "RZK", day: "Fr", slot: "Spät" },
   // SM5: Rossmann (0850 – CASCADE CONFLICT), Müller Verlag (0853)
-  { machine: "SM5", day: "Mo", slot: "Früh", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck",           ownerPM: "Müller", cascadeConflict: true },
-  { machine: "SM5", day: "Mo", slot: "Spät", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck",           ownerPM: "Müller", cascadeConflict: true },
-  { machine: "SM5", day: "Di", slot: "Früh", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck", ownerPM: "Müller", cascadeConflict: true },
+  { machine: "SM5", day: "Mo", slot: "Früh", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck",           ownerPM: "K. M.", cascadeConflict: true },
+  { machine: "SM5", day: "Mo", slot: "Spät", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck",           ownerPM: "K. M.", cascadeConflict: true },
+  { machine: "SM5", day: "Di", slot: "Früh", jobId: "#2024-0850", customer: "Rossmann GmbH", phase: "Im Druck", ownerPM: "K. M.", cascadeConflict: true },
   { machine: "SM5", day: "Di", slot: "Spät" },
   { machine: "SM5", day: "Mi", slot: "Früh" },
   { machine: "SM5", day: "Mi", slot: "Spät" },
-  { machine: "SM5", day: "Do", slot: "Früh", jobId: "#2024-0853", customer: "Müller Verlag", phase: "Vorstufe", ownerPM: "Schmidt" },
-  { machine: "SM5", day: "Do", slot: "Spät", jobId: "#2024-0853", customer: "Müller Verlag", phase: "Vorstufe", ownerPM: "Schmidt" },
-  { machine: "SM5", day: "Fr", slot: "Früh", jobId: "#2024-0853", customer: "Müller Verlag", phase: "Im Druck", ownerPM: "Schmidt" },
+  { machine: "SM5", day: "Do", slot: "Früh", jobId: "#2024-0853", customer: "Müller Verlag", phase: "Vorstufe", ownerPM: "T. S." },
+  { machine: "SM5", day: "Do", slot: "Spät", jobId: "#2024-0853", customer: "Müller Verlag", phase: "Vorstufe", ownerPM: "T. S." },
+  { machine: "SM5", day: "Fr", slot: "Früh", jobId: "#2024-0853", customer: "Müller Verlag", phase: "Im Druck", ownerPM: "T. S." },
   { machine: "SM5", day: "Fr", slot: "Spät" },
   // Digi: Weber AG (0849), Meyer Consulting (0857), rest frei
-  { machine: "Digi", day: "Mo", slot: "Früh", jobId: "#2024-0849", customer: "Weber AG",         phase: "Versandbereit", ownerPM: "Müller" },
-  { machine: "Digi", day: "Mo", slot: "Spät", jobId: "#2024-0857", customer: "Meyer Consulting", phase: "Versandbereit", ownerPM: "Schmidt" },
+  { machine: "Digi", day: "Mo", slot: "Früh", jobId: "#2024-0849", customer: "Weber AG",         phase: "Versandbereit", ownerPM: "K. M." },
+  { machine: "Digi", day: "Mo", slot: "Spät", jobId: "#2024-0857", customer: "Meyer Consulting", phase: "Versandbereit", ownerPM: "T. S." },
   { machine: "Digi", day: "Di", slot: "Früh" },
   { machine: "Digi", day: "Di", slot: "Spät" },
   { machine: "Digi", day: "Mi", slot: "Früh" },
