@@ -15,7 +15,7 @@ import { buildKIPlan, type PlacedJob } from "@/lib/planning-ai";
 import { AuftragDrawer } from "@/components/plantafel/auftrag-drawer";
 import { MachineTabs, type TabView } from "@/components/plantafel/machine-tabs";
 import { WochenplanGrid } from "@/components/plantafel/wochenplan-grid";
-import { Sparkles, Lock, AlertTriangle, Clock, Layers } from "lucide-react";
+import { Sparkles, Lock, AlertTriangle, Clock } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -109,165 +109,23 @@ function DigiStatus() {
   );
 }
 
-// ─── EingangKarte (dnd-kit) ───────────────────────────────────────────────────
+// ─── PoolKarte — einheitliche Karte für alle ungeplanten Aufträge ─────────────
 
-function EingangKarte({ job }: { job: Job }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `eingang:${job.id}`,
-    data: { jobId: job.id, source: "eingang" },
-  });
-
-  const machineColor =
-    job.machine === "CD"   ? "var(--machine-cd)"   :
-    job.machine === "SM5"  ? "var(--machine-sm5)"  :
-    job.machine === "RZK"  ? "var(--machine-rzk)"  :
-                             "var(--machine-digi)";
-
-  return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      className={`shrink-0 rounded-xl select-none transition-all overflow-hidden neu-ring ${
-        isDragging ? "opacity-30 scale-95 cursor-grabbing" : "cursor-grab hover:shadow-md hover:-translate-y-0.5"
-      }`}
-      style={{
-        background: "oklch(0.97 0.02 255)",
-        border: "1.5px solid oklch(0.65 0.10 255)",
-        minWidth: 152,
-      }}
-    >
-      <div style={{ height: 3, backgroundColor: machineColor }} />
-      <div className="px-3 py-2">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span
-            className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-            style={{
-              backgroundColor: `color-mix(in oklab, ${machineColor} 15%, white)`,
-              color: machineColor,
-            }}
-          >
-            {job.machine === "SM5" ? "SM528" : job.machine}
-          </span>
-          <span
-            className="rounded-full px-1.5 py-0.5 text-[8px] font-bold pulse-chip"
-            style={{ background: "oklch(0.35 0.18 145 / 0.12)", color: "oklch(0.30 0.16 145)" }}
-          >
-            NEU
-          </span>
-          {job.prioritaet && job.prioritaet !== "normal" && (
-            <span
-              className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-              style={{ background: "oklch(0.93 0.12 50 / 0.25)", color: "oklch(0.50 0.18 50)" }}
-            >
-              {job.prioritaet}
-            </span>
-          )}
-        </div>
-
-        <div className="text-xs font-bold truncate" style={{ maxWidth: 140 }}>
-          {job.customer}
-        </div>
-
-        <div className="flex items-center gap-1.5 mt-1">
-          <span className="text-[9px] font-mono text-muted-foreground">
-            {job.druckzeitStunden}h
-          </span>
-          <span className="text-[9px] text-muted-foreground/40">·</span>
-          <span className="text-[9px] font-mono" style={{ color: "oklch(0.50 0.08 25)" }}>
-            {job.delivery}
-          </span>
-        </div>
-
-        {(job.dispersionslack || job.sonderfarbe) && (
-          <div className="flex gap-1 mt-1 flex-wrap">
-            {job.dispersionslack && (
-              <span className="text-[7px] bg-white/70 rounded px-1 py-0.5 text-muted-foreground font-medium">
-                Lack
-              </span>
-            )}
-            {job.sonderfarbe && (
-              <span
-                className="text-[7px] rounded px-1 py-0.5 font-medium"
-                style={{ background: "oklch(0.93 0.12 50 / 0.18)", color: "oklch(0.50 0.16 50)" }}
-              >
-                {job.sonderfarbe}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── EingangStreifen ─────────────────────────────────────────────────────────
-
-function EingangStreifen({
-  jobs,
-  onKiVorschlag,
-}: {
-  jobs: Job[];
-  onKiVorschlag: () => void;
-}) {
-  return (
-    <div
-      className="shrink-0 border-b border-border px-6 py-3"
-      style={{
-        background: "oklch(0.97 0.02 255 / 0.6)",
-        borderLeft: "3px solid oklch(0.60 0.14 255)",
-      }}
-    >
-      <div className="flex items-center gap-3 mb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-[0.14em] text-foreground">
-            Neue Aufträge
-          </span>
-          <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-bold pulse-chip"
-            style={{
-              background: "oklch(0.55 0.18 255 / 0.15)",
-              color: "oklch(0.38 0.16 255)",
-            }}
-          >
-            {jobs.length}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onKiVorschlag}
-          className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-          style={{
-            background: "linear-gradient(135deg, oklch(0.55 0.22 280), oklch(0.48 0.19 295))",
-          }}
-        >
-          <Sparkles className="h-3 w-3" />
-          KI-Vorschlag
-        </button>
-      </div>
-      <div className="flex gap-2.5 overflow-x-auto pb-1">
-        {jobs.map((job) => (
-          <EingangKarte key={job.id} job={job} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── TascheCard ──────────────────────────────────────────────────────────────
-
-function TascheCard({
+function PoolKarte({
   job,
+  isNew,
   isPinned,
   onClick,
 }: {
   job: Job;
+  isNew: boolean;
   isPinned: boolean;
   onClick: () => void;
 }) {
+  const prefix = isNew ? "eingang" : "tasche";
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `tasche:${job.id}`,
-    data: { jobId: job.id, source: "tasche" },
+    id: `${prefix}:${job.id}`,
+    data: { jobId: job.id, source: prefix },
   });
 
   const machineColor =
@@ -277,19 +135,11 @@ function TascheCard({
                              "var(--machine-digi)";
 
   const isLate = job.status === "Hinterher";
-  const isClose = job.status === "Nach Plan" && (() => {
-    // treat as "close" if delivery within 3 days (simple check by looking for urgency markers)
-    return job.prioritaet === "eilig" || job.prioritaet === "express";
-  })();
   const hasDruckfreigabeProblem =
     job.druckfreigabe === "Fehlt" || job.druckfreigabe === "Angefordert";
   const druckdatenFehlen = job.druckdatenEingang === null;
 
-  const deliveryColor = isLate
-    ? "oklch(0.52 0.20 25)"
-    : isClose
-    ? "oklch(0.52 0.20 25)"
-    : "oklch(0.40 0.04 0)";
+  const deliveryColor = isLate ? "oklch(0.52 0.20 25)" : "oklch(0.40 0.04 0)";
 
   return (
     <div
@@ -297,12 +147,15 @@ function TascheCard({
       {...listeners}
       {...attributes}
       onClick={onClick}
-      className={`group rounded-xl border overflow-hidden transition-all select-none ${
+      className={`shrink-0 rounded-xl border overflow-hidden transition-all select-none ${
+        isNew ? "neu-ring" : ""
+      } ${
         isDragging
           ? "opacity-30 scale-95 cursor-grabbing shadow-xl"
           : "cursor-grab hover:shadow-md hover:-translate-y-0.5"
       }`}
       style={{
+        width: 176,
         background: isLate
           ? "oklch(0.98 0.02 25)"
           : hasDruckfreigabeProblem
@@ -315,109 +168,90 @@ function TascheCard({
           : "oklch(0.88 0.003 80)",
       }}
     >
-      {/* Top accent bar */}
+      {/* Maschinenfarb-Balken */}
       <div className="h-1" style={{ backgroundColor: machineColor }} />
 
-      <div className="px-3 pt-2 pb-2.5 space-y-2">
-        {/* Row 1: Machine + Priorität + Gepinnt */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="px-2.5 pt-2 pb-2 space-y-1.5">
+        {/* Zeile 1: Maschine + Badges + Termin */}
+        <div className="flex items-center gap-1 flex-wrap">
           <span
-            className="rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none"
-            style={{
-              backgroundColor: `color-mix(in oklab, ${machineColor} 15%, white)`,
-              color: machineColor,
-            }}
+            className="rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none shrink-0"
+            style={{ backgroundColor: `color-mix(in oklab, ${machineColor} 15%, white)`, color: machineColor }}
           >
             {job.machine === "SM5" ? "SM528" : job.machine}
           </span>
+          {isNew && (
+            <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold leading-none pulse-chip"
+              style={{ background: "oklch(0.35 0.18 145 / 0.12)", color: "oklch(0.30 0.16 145)" }}>
+              NEU
+            </span>
+          )}
           {isPinned && (
-            <span className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none"
+            <span className="flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[8px] font-semibold leading-none"
               style={{ background: "oklch(0.92 0.08 255 / 0.4)", color: "oklch(0.40 0.20 255)" }}>
               <Lock className="h-2 w-2" />
-              Gepinnt
             </span>
           )}
           {(job.prioritaet === "eilig" || job.prioritaet === "express") && (
-            <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none pulse-chip"
+            <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold leading-none"
               style={{ background: "oklch(0.93 0.12 50 / 0.3)", color: "oklch(0.48 0.18 50)" }}>
               {job.prioritaet}
             </span>
           )}
           {hasDruckfreigabeProblem && (
-            <span className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none"
-              style={{ background: "oklch(0.93 0.12 85 / 0.4)", color: "oklch(0.48 0.16 85)" }}>
-              <AlertTriangle className="h-2 w-2" />
-              {job.druckfreigabe}
-            </span>
+            <AlertTriangle className="h-2.5 w-2.5 shrink-0" style={{ color: "oklch(0.55 0.16 85)" }} />
           )}
-          <span className="ml-auto text-[9px] font-mono font-semibold" style={{ color: deliveryColor }}>
+          <span className="ml-auto text-[9px] font-mono font-semibold shrink-0" style={{ color: deliveryColor }}>
             {job.delivery}
           </span>
         </div>
 
-        {/* Row 2: Kundenname */}
-        <div className="text-[13px] font-bold leading-tight truncate">
-          {job.customer}
-        </div>
+        {/* Zeile 2: Kundenname */}
+        <div className="text-[12px] font-bold leading-tight truncate">{job.customer}</div>
 
-        {/* Row 3: Produkt */}
+        {/* Zeile 3: Produkt */}
         {job.product && (
-          <div className="text-[10px] text-muted-foreground truncate leading-tight">
-            {job.product}
-          </div>
+          <div className="text-[9px] text-muted-foreground truncate">{job.product}</div>
         )}
 
-        {/* Row 4: Key Facts Grid */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-0.5">
+        {/* Zeile 4: Auflage · Druckzeit · Papier */}
+        <div className="flex items-center gap-2 flex-wrap">
           {job.auflage !== undefined && (
-            <div className="flex items-center gap-1">
-              <Layers className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
-              <span className="text-[9px] font-mono text-muted-foreground">
-                {job.auflage.toLocaleString("de-DE")} Stk.
-              </span>
-            </div>
+            <span className="text-[9px] font-mono text-muted-foreground">
+              {job.auflage.toLocaleString("de-DE")} Stk.
+            </span>
           )}
           {job.seitenanzahl != null && (
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] text-muted-foreground">
-                {job.seitenanzahl} S.
-              </span>
-            </div>
+            <span className="text-[9px] text-muted-foreground">{job.seitenanzahl} S.</span>
           )}
           {job.druckzeitStunden !== undefined && (
-            <div className="flex items-center gap-1">
-              <Clock className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
-              <span className="text-[9px] font-mono text-muted-foreground">
-                ~{job.druckzeitStunden}h
-              </span>
-            </div>
-          )}
-          {job.paper && (
-            <div className="flex items-center gap-1 col-span-2">
-              <span className="text-[9px] text-muted-foreground truncate">
-                {job.paper}
-              </span>
-            </div>
+            <span className="flex items-center gap-0.5 text-[9px] font-mono text-muted-foreground">
+              <Clock className="h-2 w-2" />
+              {job.druckzeitStunden}h
+            </span>
           )}
         </div>
+        {job.paper && (
+          <div className="text-[9px] text-muted-foreground truncate">{job.paper}</div>
+        )}
 
-        {/* Row 5: Flags — Lack, Sonderfarbe, Druckdaten */}
+        {/* Zeile 5: Warn-Flags */}
         {(job.dispersionslack || job.sonderfarbe || druckdatenFehlen) && (
-          <div className="flex flex-wrap gap-1 pt-0.5">
+          <div className="flex flex-wrap gap-1">
             {job.dispersionslack && (
-              <span className="text-[8px] font-semibold rounded-md px-1.5 py-0.5 leading-none"
+              <span className="text-[7px] font-semibold rounded px-1 py-0.5 leading-none"
                 style={{ background: "oklch(0.92 0.06 255 / 0.5)", color: "oklch(0.40 0.18 255)" }}>
                 Lack · Rüstzeit
               </span>
             )}
             {job.sonderfarbe && (
-              <span className="text-[8px] font-semibold rounded-md px-1.5 py-0.5 leading-none"
+              <span className="text-[7px] font-semibold rounded px-1 py-0.5 leading-none"
                 style={{ background: "oklch(0.93 0.12 50 / 0.25)", color: "oklch(0.48 0.18 50)" }}>
                 {job.sonderfarbe}
               </span>
             )}
             {druckdatenFehlen && (
-              <span className="text-[8px] font-semibold rounded-md px-1.5 py-0.5 leading-none"
+              <span className="text-[7px] font-semibold rounded px-1 py-0.5 leading-none"
                 style={{ background: "oklch(0.93 0.10 25 / 0.25)", color: "oklch(0.48 0.20 25)" }}>
                 Druckdaten fehlen
               </span>
@@ -429,65 +263,81 @@ function TascheCard({
   );
 }
 
-// ─── AuftragsTasche Sidebar ───────────────────────────────────────────────────
+// ─── AuftragsPool — kombinierter horizontaler Streifen ────────────────────────
 
-function AuftragsTasche({
-  jobs,
+function AuftragsPool({
+  eingang,
+  tasche,
   pinnedIds,
   onCardClick,
-  onKiPlan,
+  onKiVorschlag,
 }: {
-  jobs: Job[];
+  eingang: Job[];
+  tasche: Job[];
   pinnedIds: Set<string>;
   onCardClick: (id: string) => void;
-  onKiPlan: () => void;
+  onKiVorschlag: () => void;
 }) {
+  const total = eingang.length + tasche.length;
+  const neuCount = eingang.length;
+
   return (
-    <div
-      className="flex flex-col border-l border-border shrink-0"
-      style={{ width: 240, background: "oklch(0.97 0.005 255)" }}
-    >
+    <div className="shrink-0 border-b border-border" style={{ background: "oklch(0.975 0.004 255)" }}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-foreground">
-            Auftragstasche
+      <div className="flex items-center gap-3 px-6 pt-3 pb-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-foreground">
+          Auftragstasche
+        </span>
+        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+          style={{ background: "oklch(0.88 0.003 80)", color: "oklch(0.40 0.006 255)" }}>
+          {total}
+        </span>
+        {neuCount > 0 && (
+          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold pulse-chip"
+            style={{ background: "oklch(0.35 0.18 145 / 0.10)", color: "oklch(0.30 0.16 145)" }}>
+            {neuCount} NEU
           </span>
-          <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-            style={{ background: "oklch(0.88 0.003 80)", color: "oklch(0.40 0.006 255)" }}
-          >
-            {jobs.length}
-          </span>
-        </div>
+        )}
         <button
           type="button"
-          onClick={onKiPlan}
-          className="w-full flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
-          style={{
-            background: "linear-gradient(135deg, oklch(0.55 0.22 280), oklch(0.48 0.19 295))",
-          }}
+          onClick={onKiVorschlag}
+          className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, oklch(0.55 0.22 280), oklch(0.48 0.19 295))" }}
         >
           <Sparkles className="h-3 w-3" />
-          KI-Plan
+          KI-Vorschlag
         </button>
       </div>
 
-      {/* Cards */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-        {jobs.length === 0 && (
-          <p className="text-[10px] text-muted-foreground text-center pt-8">
-            Alle Aufträge eingeplant
-          </p>
-        )}
-        {jobs.map((job) => (
-          <TascheCard
+      {/* Karten-Streifen */}
+      <div className="flex gap-2.5 overflow-x-auto px-6 pb-3">
+        {/* Neue Aufträge zuerst */}
+        {eingang.map((job) => (
+          <PoolKarte
             key={job.id}
             job={job}
+            isNew
             isPinned={pinnedIds.has(job.id)}
             onClick={() => onCardClick(job.id)}
           />
         ))}
+        {/* Trennlinie wenn beide vorhanden */}
+        {eingang.length > 0 && tasche.length > 0 && (
+          <div className="shrink-0 w-px self-stretch my-1" style={{ background: "oklch(0.85 0.003 80)" }} />
+        )}
+        {/* Bestehende Aufträge */}
+        {tasche.map((job) => (
+          <PoolKarte
+            key={job.id}
+            job={job}
+            isNew={false}
+            isPinned={pinnedIds.has(job.id)}
+            onClick={() => onCardClick(job.id)}
+          />
+        ))}
+        {total === 0 && (
+          <p className="text-[11px] text-muted-foreground py-4">Alle Aufträge eingeplant</p>
+        )}
       </div>
     </div>
   );
@@ -638,10 +488,14 @@ export function WochenplanungView() {
           <h1 className="editorial-header text-4xl">Wochenplanung</h1>
         </div>
 
-        {/* EingangStreifen */}
-        {eingang.length > 0 && (
-          <EingangStreifen jobs={eingang} onKiVorschlag={handleKiPlan} />
-        )}
+        {/* Auftragspool */}
+        <AuftragsPool
+          eingang={eingang}
+          tasche={tasche}
+          pinnedIds={pinnedIds}
+          onCardClick={(id) => setSelectedJobId(id)}
+          onKiVorschlag={handleKiPlan}
+        />
 
         {/* Machine Tabs */}
         <MachineTabs
@@ -692,13 +546,6 @@ export function WochenplanungView() {
             />
           )}
 
-          {/* Auftragstasche Sidebar */}
-          <AuftragsTasche
-            jobs={tasche}
-            pinnedIds={pinnedIds}
-            onCardClick={(id) => setSelectedJobId(id)}
-            onKiPlan={handleKiPlan}
-          />
         </div>
 
         {/* Auftrag Drawer */}
