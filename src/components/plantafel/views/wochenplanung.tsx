@@ -13,7 +13,7 @@ import {
 } from "@/lib/mock-data";
 import { buildKIPlan, type PlacedJob } from "@/lib/planning-ai";
 import { AuftragDrawer } from "@/components/plantafel/auftrag-drawer";
-import { MachineTabs } from "@/components/plantafel/machine-tabs";
+import { MachineTabs, type TabView } from "@/components/plantafel/machine-tabs";
 import { WochenplanGrid } from "@/components/plantafel/wochenplan-grid";
 import { Sparkles } from "lucide-react";
 
@@ -257,7 +257,7 @@ function EingangStreifen({
 // ─── Main View ───────────────────────────────────────────────────────────────
 
 export function WochenplanungView() {
-  const [activeMachine, setActiveMachine] = useState<Machine>("CD");
+  const [activeMachine, setActiveMachine] = useState<TabView>("Gesamt");
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [grid, setGrid] = useState<Record<SlotKey, GridJob[]>>({});
   const [eingang, setEingang] = useState<Job[]>(() =>
@@ -392,14 +392,40 @@ export function WochenplanungView() {
 
         {/* Machine Tabs */}
         <MachineTabs
-          activeMachine={activeMachine}
+          activeTab={activeMachine}
           onChange={setActiveMachine}
           eingang={eingang}
         />
 
         {/* Tab content */}
-        <div className="flex flex-1 overflow-hidden">
-          {activeMachine === "Digi" ? (
+        <div className="flex flex-1 overflow-auto">
+          {activeMachine === "Gesamt" ? (
+            <div className="flex flex-col flex-1 divide-y divide-border">
+              {(["CD", "SM5", "RZK"] as const).map((machine) => (
+                <div key={machine} className="shrink-0">
+                  <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
+                    {machine === "SM5" ? "SM528" : machine}
+                  </div>
+                  <WochenplanGrid
+                    machine={machine}
+                    weekOffset={currentWeekOffset}
+                    onWeekOffsetChange={setCurrentWeekOffset}
+                    grid={grid}
+                    pinnedIds={pinnedIds}
+                    onCardClick={(jobId) => setSelectedJobId(jobId)}
+                    onRemove={removeFromGrid}
+                    hideKwNav
+                  />
+                </div>
+              ))}
+              <div className="shrink-0">
+                <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
+                  Digi
+                </div>
+                <DigiStatus />
+              </div>
+            </div>
+          ) : activeMachine === "Digi" ? (
             <DigiStatus />
           ) : (
             <WochenplanGrid

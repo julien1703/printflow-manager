@@ -48,6 +48,7 @@ interface WochenplanGridProps {
   pinnedIds: Set<string>;
   onCardClick: (jobId: string) => void;
   onRemove: (key: SlotKey, jobId: string) => void;
+  hideKwNav?: boolean;
 }
 
 function DropZoneRow({
@@ -139,6 +140,7 @@ export function WochenplanGrid({
   pinnedIds,
   onCardClick,
   onRemove,
+  hideKwNav = false,
 }: WochenplanGridProps) {
   const meta = MACHINE_META[machine];
   const accent =
@@ -153,41 +155,43 @@ export function WochenplanGrid({
   return (
     <div className="flex flex-col flex-1 overflow-auto">
       {/* KW Navigation */}
-      <div className="flex items-center gap-1 px-6 py-2 border-b border-border bg-background/80 backdrop-blur-sm shrink-0">
-        <button
-          type="button"
-          onClick={() => onWeekOffsetChange(weekOffset - 1)}
-          disabled={weekOffset === 0}
-          className="p-1 rounded hover:bg-muted disabled:opacity-30 transition"
-          aria-label="Vorherige Woche"
-        >
-          ‹
-        </button>
-        {KW_META.map((w, i) => (
+      {!hideKwNav && (
+        <div className="flex items-center gap-1 px-6 py-2 border-b border-border bg-background/80 backdrop-blur-sm shrink-0">
           <button
-            key={w.kw}
             type="button"
-            onClick={() => onWeekOffsetChange(i)}
-            className="px-3 py-1 rounded text-sm font-medium transition"
-            style={
-              i === weekOffset
-                ? { background: accent, color: "white" }
-                : { color: "oklch(0.50 0.006 255)" }
-            }
+            onClick={() => onWeekOffsetChange(weekOffset - 1)}
+            disabled={weekOffset === 0}
+            className="p-1 rounded hover:bg-muted disabled:opacity-30 transition"
+            aria-label="Vorherige Woche"
           >
-            KW {w.kw}
+            ‹
           </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => onWeekOffsetChange(weekOffset + 1)}
-          disabled={weekOffset === KW_META.length - 1}
-          className="p-1 rounded hover:bg-muted disabled:opacity-30 transition"
-          aria-label="Nächste Woche"
-        >
-          ›
-        </button>
-      </div>
+          {KW_META.map((w, i) => (
+            <button
+              key={w.kw}
+              type="button"
+              onClick={() => onWeekOffsetChange(i)}
+              className="px-3 py-1 rounded text-sm font-medium transition"
+              style={
+                i === weekOffset
+                  ? { background: accent, color: "white" }
+                  : { color: "oklch(0.50 0.006 255)" }
+              }
+            >
+              KW {w.kw}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => onWeekOffsetChange(weekOffset + 1)}
+            disabled={weekOffset === KW_META.length - 1}
+            className="p-1 rounded hover:bg-muted disabled:opacity-30 transition"
+            aria-label="Nächste Woche"
+          >
+            ›
+          </button>
+        </div>
+      )}
 
       {/* Grid header: day labels */}
       <div
