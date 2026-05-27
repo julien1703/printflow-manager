@@ -482,9 +482,6 @@ export function WochenplanungView() {
       <div className="flex flex-col fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
         {/* Page header */}
         <div className="px-8 pt-8 pb-5 shrink-0 border-b border-border">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-            Produktionsleitung · Wochenplanung
-          </div>
           <h1 className="editorial-header text-4xl">Wochenplanung</h1>
         </div>
 

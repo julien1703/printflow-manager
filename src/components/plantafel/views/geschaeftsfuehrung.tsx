@@ -37,9 +37,6 @@ export function GeschaeftsfuehrungView() {
     <div className="p-8 space-y-8 fade-swap">
       {/* Header */}
       <header>
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-          Geschäftsführung · R. Pfitzer
-        </div>
         <h1 className="editorial-header text-4xl">Betriebsübersicht</h1>
         <p className="text-sm text-muted-foreground mt-1.5">
           KW 20 · 18. – 22. Mai 2026

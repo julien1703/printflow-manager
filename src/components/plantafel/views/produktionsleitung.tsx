@@ -127,9 +127,6 @@ export function ProduktionsleitungView() {
 
         {/* ── Header — clean, no gantt ── */}
         <div className="px-8 pt-8 pb-6 border-b border-border">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-            Produktionsleitung · G. Maisch
-          </div>
           <h1 className="editorial-header leading-none" style={{ fontSize: "clamp(2.8rem, 5vw, 4rem)" }}>
             Montag
           </h1>

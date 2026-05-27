@@ -42,9 +42,6 @@ export function LogistikView() {
     <div className="p-8 space-y-6 fade-swap">
       {/* Header */}
       <header>
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-          Logistik & Versand · A. Batt
-        </div>
         <h1 className="editorial-header text-4xl">Versand-Übersicht</h1>
         <div className="mt-3 flex items-center gap-5">
           <KPI value={todayShipping.length} label="Heute versandbereit" tone={todayShipping.length > 0 ? "info" : undefined} />

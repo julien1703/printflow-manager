@@ -98,9 +98,6 @@ export function ProjektmanagerView() {
   return (
     <div className="p-8 space-y-6 fade-swap">
       <header>
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-          Projektmanager · Kundenbetreuung
-        </div>
         <h1 className="editorial-header text-4xl">Meine Aufträge</h1>
       </header>
       <div className="flex gap-3 items-center">

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ROLES, RoleKey, MESSAGES } from "@/lib/mock-data";
 import {
   LayoutDashboard, CalendarDays, Bell,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, ChevronDown,
 } from "lucide-react";
 
 const NAV_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -32,43 +32,115 @@ interface SidebarProps {
   role: RoleKey;
   activeNav: string;
   onNavChange: (n: string) => void;
+  onRoleChange: (r: RoleKey) => void;
   collapsed?: boolean;
   onToggle?: () => void;
 }
 
-export function Sidebar({ role, activeNav, onNavChange, collapsed = false, onToggle }: SidebarProps) {
+export function Sidebar({ role, activeNav, onNavChange, onRoleChange, collapsed = false, onToggle }: SidebarProps) {
   const current = ROLES.find((r) => r.key === role)!;
   const gradient = ROLE_GRADIENTS[role];
   const roleColor = ROLE_COLORS[role];
+  const [rolePicker, setRolePicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    if (!rolePicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setRolePicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [rolePicker]);
 
   return (
     <aside
       className="relative flex h-screen shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-all duration-200"
       style={{ width: collapsed ? 56 : 220 }}
     >
-      {/* Identity */}
-      <div className="border-b border-sidebar-border">
-        {collapsed ? (
-          <div className="flex justify-center py-4">
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-              style={{ background: gradient }}
-            >
-              {current.person.charAt(0)}
+      {/* Identity + Role Switcher */}
+      <div className="relative border-b border-sidebar-border" ref={pickerRef}>
+        <button
+          onClick={() => setRolePicker((o) => !o)}
+          className="w-full text-left hover:bg-sidebar-accent/40 transition"
+          title={collapsed ? `Rolle: ${current.name}` : undefined}
+        >
+          {collapsed ? (
+            <div className="flex justify-center py-4">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                style={{ background: gradient }}
+              >
+                {current.person.charAt(0)}
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3 px-4 py-4">
-            <div
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-              style={{ background: gradient }}
-            >
-              {current.person.charAt(0)}
+          ) : (
+            <div className="flex items-center gap-3 px-4 py-4 pr-3">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                style={{ background: gradient }}
+              >
+                {current.person.charAt(0)}
+              </div>
+              <div className="min-w-0 leading-tight flex-1">
+                <div className="text-sm font-bold truncate">{current.person}</div>
+                <div className="text-[11px] text-sidebar-foreground/60 truncate">{current.name}</div>
+                <span className="text-[10px] text-[oklch(0.52_0.14_153)] font-semibold">● Aktiv</span>
+              </div>
+              <ChevronDown
+                className={`h-3.5 w-3.5 shrink-0 text-sidebar-foreground/40 transition-transform ${rolePicker ? "rotate-180" : ""}`}
+              />
             </div>
-            <div className="min-w-0 leading-tight">
-              <div className="text-sm font-bold truncate">{current.person}</div>
-              <div className="text-[11px] text-sidebar-foreground/60 truncate">{current.name}</div>
-              <span className="text-[10px] text-[oklch(0.52_0.14_153)] font-semibold">● Aktiv</span>
+          )}
+        </button>
+
+        {/* Role Dropdown */}
+        {rolePicker && (
+          <div
+            className="absolute left-0 top-full z-50 w-56 rounded-xl border border-sidebar-border bg-sidebar shadow-xl overflow-hidden fade-swap"
+            style={{ minWidth: 200 }}
+          >
+            <div className="px-3 py-2 border-b border-sidebar-border">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/40 font-semibold">
+                Rolle wechseln
+              </div>
+            </div>
+            <div className="py-1">
+              {ROLES.map((r) => {
+                const active = r.key === role;
+                const grad = ROLE_GRADIENTS[r.key];
+                return (
+                  <button
+                    key={r.key}
+                    onClick={() => {
+                      onRoleChange(r.key);
+                      setRolePicker(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition ${
+                      active
+                        ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                        : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    }`}
+                  >
+                    <div
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                      style={{ background: grad }}
+                    >
+                      {r.person.charAt(0)}
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <div className="text-[12px] font-medium leading-tight truncate">{r.name}</div>
+                      <div className="text-[10px] text-sidebar-foreground/50 truncate">{r.person}</div>
+                    </div>
+                    {active && (
+                      <span className="ml-auto h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: ROLE_COLORS[r.key] }} />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -154,10 +226,9 @@ function groupMessages(messages: typeof MESSAGES): MessageGroup[] {
 
 interface TopBarProps {
   role: RoleKey;
-  onRoleChange: (r: RoleKey) => void;
 }
 
-export function TopBar({ role, onRoleChange }: TopBarProps) {
+export function TopBar({ role }: TopBarProps) {
   const [bellOpen, setBellOpen] = useState(false);
   const now = new Date();
   const date = now.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
@@ -165,9 +236,8 @@ export function TopBar({ role, onRoleChange }: TopBarProps) {
   const unread = MESSAGES.filter((m) => m.unread).length;
 
   return (
-    <header className="flex flex-col border-b border-border bg-card/90 backdrop-blur shrink-0">
-      {/* Row 1: date + bell */}
-      <div className="flex h-11 items-center justify-between px-6">
+    <header className="flex border-b border-border bg-card/90 backdrop-blur shrink-0">
+      <div className="flex h-11 w-full items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold capitalize">{date}</span>
           <span className="text-[11px] text-muted-foreground">· {time} Uhr</span>
@@ -218,37 +288,6 @@ export function TopBar({ role, onRoleChange }: TopBarProps) {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Row 2: role tabs */}
-      <div className="flex items-center gap-1 px-4 pb-2.5 overflow-x-auto">
-        {ROLES.map((r) => {
-          const active = r.key === role;
-          const dotColor = ROLE_COLORS[r.key];
-          return (
-            <button
-              key={r.key}
-              onClick={() => onRoleChange(r.key)}
-              className={`flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-[12px] font-medium whitespace-nowrap transition shrink-0 ${
-                active
-                  ? "text-background shadow-sm"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-              style={
-                active
-                  ? { backgroundColor: `color-mix(in oklab, ${dotColor} 8%, white)` }
-                  : undefined
-              }
-            >
-              <span
-                className="h-[4px] w-[4px] rounded-full shrink-0"
-                style={{ backgroundColor: dotColor }}
-              />
-              {r.name}
-              {active && <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" />}
-            </button>
-          );
-        })}
       </div>
     </header>
   );

@@ -37,9 +37,6 @@ export function BuchbindereiView() {
     <div className="relative p-8 space-y-6 fade-swap">
       {/* Header */}
       <header>
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-          Buchbinderei · Weiterverarbeitung · H. Seifert
-        </div>
         <h1 className="editorial-header text-4xl">Was kommt heute auf dich zu?</h1>
       </header>
 

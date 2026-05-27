@@ -60,9 +60,6 @@ export function DruckvorstufeView() {
     <div className="p-8 space-y-6 fade-swap">
       {/* Header */}
       <header>
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-          Druckvorstufe · K. Weber
-        </div>
         <h1 className="editorial-header text-4xl">Datenprüfung & Freigaben</h1>
         <div className="mt-3 flex items-center gap-5">
           <KPI value={criticalCount} label="Kritisch" tone="critical" />

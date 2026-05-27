@@ -43,11 +43,12 @@ function Index() {
         role={role}
         activeNav={effectiveNav}
         onNavChange={setNav}
+        onRoleChange={handleRoleChange}
         collapsed={!sidebarOpen}
         onToggle={() => setSidebarOpen((o) => !o)}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <TopBar role={role} onRoleChange={handleRoleChange} />
+        <TopBar role={role} />
         <main className="flex-1 overflow-y-auto" key={`${role}-${effectiveNav}`}>
           {effectiveNav === "Wochenplan" && role === "produktionsleitung" ? (
             <WochenplanungView />
