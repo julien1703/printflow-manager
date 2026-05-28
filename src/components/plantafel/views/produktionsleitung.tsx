@@ -7,11 +7,15 @@ import { ZeitPill } from "../zeit-pill";
 import { KISuggestionsPanel } from "@/components/plantafel/ki-suggestions";
 import { AuftragDrawer } from "@/components/plantafel/auftrag-drawer";
 import {
-  AlertTriangle, Zap, Clock, TrendingDown, Activity, Printer,
-  AlertOctagon, FileWarning, ChevronDown, ChevronUp, ArrowRight,
+  Bell, Zap, Clock, ChevronDown, ChevronUp, ArrowRight,
+  CheckCircle2, AlertTriangle, Circle, TrendingDown,
 } from "lucide-react";
 
-const ALL_MACHINES: Machine[] = ["CD", "RZK", "SM5", "Digi"];
+const ALL_MACHINES: Machine[] = ["CD", "SM5", "RZK", "Digi"];
+
+const MACHINE_DISPLAY: Record<Machine, string> = {
+  CD: "CD", RZK: "RZK", SM5: "SM528", Digi: "Digi",
+};
 
 function sortByDelivery(a: Job, b: Job) {
   const d = (s: string) => { const [day, month] = s.split(".").map(Number); return month * 100 + day; };
@@ -44,13 +48,28 @@ function getNextJob(machine: Machine, currentId?: string): Job | undefined {
   ).sort(sortByDelivery)[0];
 }
 
-const MACHINE_DISPLAY: Record<Machine, string> = {
-  CD: "CD", RZK: "RZK", SM5: "SM528", Digi: "Digi",
-};
+function MachineUtilBar({ machine, color }: { machine: Machine; color: string }) {
+  const jobs = JOBS.filter(
+    (j) => j.machine === machine && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
+  );
+  const total = Math.min(jobs.length, 6);
+  return (
+    <div className="flex gap-0.5">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-1 flex-1 rounded-full transition-all"
+          style={{ background: i < total ? color : "oklch(0.88 0.003 80)" }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function ProduktionsleitungView() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
+  const [alertsExpanded, setAlertsExpanded] = useState(false);
+  const [expandedConflict, setExpandedConflict] = useState<string | null>(null);
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(
     () => new Set(JOBS.filter((j) => j.festgepinnt).map((j) => j.id))
   );
@@ -60,8 +79,7 @@ export function ProduktionsleitungView() {
   function togglePinned(jobId: string) {
     setPinnedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(jobId)) next.delete(jobId);
-      else next.add(jobId);
+      if (next.has(jobId)) next.delete(jobId); else next.add(jobId);
       return next;
     });
   }
@@ -75,319 +93,277 @@ export function ProduktionsleitungView() {
   const missingFreigabe = JOBS.filter(
     (j) => j.druckfreigabe === "Fehlt" && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
   );
+  const doneToday = JOBS.filter((j) => j.orderStatus === "Abgeschlossen").length;
 
-  function toggleAlert(id: string) {
-    setExpandedAlerts((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  const kpis = [
-    { count: activeJobs.length, label: "Aktiv",        Icon: Activity,     warn: false },
-    { count: inProduction,       label: "Im Druck",     Icon: Printer,      warn: false },
-    { count: blockedCount,       label: "Blockiert",    Icon: AlertOctagon, warn: blockedCount > 0 },
-    { count: missingFreigabe.length, label: "Freigabe fehlt", Icon: FileWarning, warn: missingFreigabe.length > 0 },
-  ];
+  const totalAlerts = CASCADE_CONFLICTS.length + (missingFreigabe.length > 0 ? 1 : 0);
 
   return (
-    <div className="relative fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
+    <div className="relative fade-swap flex flex-col" style={{ minHeight: "calc(100vh - 88px)" }}>
 
-      {/* ── Page Header ── */}
-      <div className="px-8 pt-7 pb-5 border-b border-border flex items-end justify-between">
+      {/* ── Header ── */}
+      <div className="px-8 pt-6 pb-5 flex items-start justify-between shrink-0">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-1">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-1.5">
             Produktionsleitung · G. Maisch
           </div>
-          <h1 className="text-3xl font-bold leading-none tracking-tight">Dashboard</h1>
-        </div>
-        <span className="text-[11px] font-mono text-muted-foreground pb-0.5">
-          Mi. 20. Mai 2026 · KW 21
-        </span>
-      </div>
-
-      {/* ── KPI Row ── */}
-      <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="px-6 py-4 flex items-center gap-4">
-            <div
-              className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{
-                background: kpi.warn
-                  ? "oklch(0.93 0.10 25 / 0.15)"
-                  : "oklch(0.95 0.003 80)",
-              }}
-            >
-              <kpi.Icon
-                className="h-4 w-4"
-                style={{ color: kpi.warn ? "oklch(0.50 0.22 25)" : "oklch(0.55 0.006 255)" }}
-              />
-            </div>
-            <div>
-              <div
-                className="text-2xl font-black number-display leading-none"
-                style={{ color: kpi.warn ? "oklch(0.50 0.22 25)" : "oklch(0.16 0.008 255)" }}
-              >
-                {kpi.count}
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-semibold mt-0.5">
-                {kpi.label}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="px-8 py-6 space-y-6">
-
-        {/* ── Alerts ── */}
-        {(CASCADE_CONFLICTS.length > 0 || missingFreigabe.length > 0) && (
-          <div className="space-y-2">
-            {CASCADE_CONFLICTS.map((cc) => {
-              const isExpanded = expandedAlerts.has(cc.triggerId);
-              return (
-                <div
-                  key={cc.triggerId}
-                  className="rounded-xl border cursor-pointer overflow-hidden"
-                  style={{
-                    background: "oklch(0.98 0.015 25)",
-                    borderColor: "oklch(0.88 0.08 25)",
-                  }}
-                  onClick={() => toggleAlert(cc.triggerId)}
-                >
-                  <div className="flex items-center gap-3 px-4 py-3 text-sm">
-                    <Zap className="h-3.5 w-3.5 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
-                    <span className="font-semibold" style={{ color: "oklch(0.38 0.20 25)" }}>
-                      Kaskaden-Konflikt:
-                    </span>
-                    <span className="font-medium text-foreground">{cc.triggerCustomer}</span>
-                    <span className="text-muted-foreground text-xs flex-1 truncate">· {cc.reason}</span>
-                    <div className="flex gap-1 shrink-0">
-                      {cc.affected.map((a) => (
-                        <span
-                          key={a.role}
-                          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium"
-                          style={{
-                            background: a.severity === "high" ? "oklch(0.88 0.10 25 / 0.3)" : "oklch(0.90 0.08 85 / 0.3)",
-                            color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)",
-                          }}
-                        >
-                          {a.actionRequired && <TrendingDown className="h-2.5 w-2.5" />}
-                          {a.role.replace("buchbinderei","BB").replace("logistik","Log.").replace("projektmanager","PM")}
-                        </span>
-                      ))}
-                    </div>
-                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                  </div>
-                  {isExpanded && (
-                    <div className="px-4 pb-4 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
-                      <div className="space-y-1.5 mt-3 mb-3">
-                        {cc.affected.map((a) => (
-                          <div key={a.role} className="flex items-start gap-2 text-xs">
-                            <div className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
-                              style={{ background: a.severity === "high" ? "oklch(0.50 0.22 25)" : "oklch(0.55 0.17 85)" }} />
-                            <span className="font-semibold" style={{ color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)" }}>
-                              {a.role.replace("buchbinderei","Buchbinderei").replace("logistik","Logistik").replace("projektmanager","Projektmanager")}
-                            </span>
-                            <span className="text-muted-foreground">· {a.impact}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <KISuggestionsPanel role="produktionsleitung" context={cc.reason} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {missingFreigabe.length > 0 && (
-              <div
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm border"
-                style={{ background: "oklch(0.98 0.04 85 / 0.5)", borderColor: "oklch(0.88 0.10 85)" }}
-              >
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "oklch(0.52 0.17 85)" }} />
-                <span className="font-semibold" style={{ color: "oklch(0.40 0.16 85)" }}>
-                  {missingFreigabe.length}× Druckfreigabe fehlt
-                </span>
-                <span className="text-muted-foreground text-xs">
-                  {missingFreigabe.map((j) => j.customer).join(" · ")}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Maschinen ── */}
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-3">
-            Maschinen
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            {ALL_MACHINES.map((machine) => {
-              const currentJob = getCurrentJob(machine);
-              const nextJob = getNextJob(machine, currentJob?.id);
-              const color = MACHINE_META[machine].color;
-              const isBlocked = currentJob?.cascadeConflict || currentJob?.orderStatus === "Blockiert";
-              const isRunning = currentJob?.orderStatus === "In Produktion";
-              const livePrint = LIVE_PRINT.find((lp) => lp.machine === machine);
-
-              return (
-                <div
-                  key={machine}
-                  className="rounded-2xl border overflow-hidden flex flex-col"
-                  style={{
-                    background: isBlocked ? "oklch(0.98 0.015 25)" : "var(--card)",
-                    borderColor: isBlocked ? "oklch(0.88 0.08 25)" : "var(--border)",
-                  }}
-                >
-                  {/* Header */}
-                  <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-border/50">
-                    <div>
-                      <div className="text-base font-black" style={{ color }}>{MACHINE_DISPLAY[machine]}</div>
-                      <div
-                        className="text-[9px] uppercase tracking-[0.12em] font-semibold mt-0.5"
-                        style={{
-                          color: isBlocked ? "oklch(0.50 0.22 25)" : isRunning ? "oklch(0.45 0.18 145)" : "var(--muted-foreground)",
-                        }}
-                      >
-                        {isBlocked ? "Blockiert" : isRunning ? "Läuft" : "Bereit"}
-                      </div>
-                    </div>
-                    <div
-                      className={`h-2.5 w-2.5 rounded-full ${isRunning ? "pulse-chip" : ""}`}
-                      style={{
-                        background: isBlocked ? "oklch(0.55 0.22 25)" : isRunning ? "oklch(0.52 0.20 145)" : "oklch(0.82 0.003 255)",
-                      }}
-                    />
-                  </div>
-
-                  {/* Aktueller Auftrag */}
-                  <div className="p-3 flex-1">
-                    {currentJob ? (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedJob(currentJob)}
-                        className="w-full text-left rounded-xl p-3 transition hover:brightness-[0.97]"
-                        style={{
-                          background: `color-mix(in oklab, ${color} 6%, var(--background))`,
-                          border: `1px solid color-mix(in oklab, ${color} 16%, var(--border))`,
-                        }}
-                      >
-                        <div className="text-[9px] uppercase tracking-[0.12em] font-semibold mb-1" style={{ color }}>
-                          Jetzt
-                        </div>
-                        <div className="text-sm font-bold leading-snug truncate mb-1">
-                          {currentJob.customer}
-                        </div>
-                        {isRunning && livePrint && (
-                          <div className="mt-2 mb-1">
-                            <div className="h-1 rounded-full bg-border overflow-hidden">
-                              <div
-                                className="h-full rounded-full shimmer-bar"
-                                style={{ width: `${livePrint.progress}%`, background: color }}
-                              />
-                            </div>
-                            <div className="text-[9px] text-muted-foreground font-mono mt-1">
-                              ~{livePrint.finishInMin} min
-                            </div>
-                          </div>
-                        )}
-                        <div className="text-[9px] font-mono text-muted-foreground mt-1">
-                          {currentJob.delivery}
-                        </div>
-                      </button>
-                    ) : (
-                      <div className="rounded-xl p-3 border border-dashed border-border text-xs text-muted-foreground">
-                        Kein Auftrag
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Nächster Auftrag */}
-                  {nextJob && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedJob(nextJob)}
-                      className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition text-left"
-                    >
-                      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                      <span className="text-[10px] font-semibold truncate flex-1">{nextJob.customer}</span>
-                      <span className="text-[9px] font-mono text-muted-foreground shrink-0">{nextJob.delivery}</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <h1 className="text-4xl font-black tracking-tight leading-none">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Mittwoch, 20. Mai 2026 · KW 21
+          </p>
         </div>
 
-        {/* ── Alle aktiven Aufträge ── */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
-              Alle aktiven Aufträge
+        {/* Notification bell */}
+        {totalAlerts > 0 && (
+          <button
+            type="button"
+            onClick={() => setAlertsExpanded((v) => !v)}
+            className="relative flex items-center gap-2.5 rounded-2xl border px-4 py-3 transition-all hover:bg-muted/40"
+            style={{
+              background: alertsExpanded ? "oklch(0.97 0.015 25)" : "var(--card)",
+              borderColor: alertsExpanded ? "oklch(0.82 0.10 25)" : "var(--border)",
+            }}
+          >
+            <div className="relative">
+              <Bell className="h-4 w-4" style={{ color: "oklch(0.50 0.22 25)" }} />
+              <span
+                className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full text-[8px] font-black flex items-center justify-center"
+                style={{ background: "oklch(0.50 0.22 25)", color: "white" }}
+              >
+                {totalAlerts}
+              </span>
+            </div>
+            <span className="text-sm font-semibold" style={{ color: "oklch(0.38 0.20 25)" }}>
+              {totalAlerts} {totalAlerts === 1 ? "Hinweis" : "Hinweise"}
             </span>
-            <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
+            {alertsExpanded ? (
+              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* ── Alerts Panel (expandable) ── */}
+      {alertsExpanded && (
+        <div className="mx-8 mb-5 rounded-2xl border overflow-hidden" style={{ borderColor: "oklch(0.82 0.10 25)" }}>
+          {CASCADE_CONFLICTS.map((cc) => (
+            <div key={cc.triggerId} style={{ borderBottom: "1px solid oklch(0.90 0.04 25)" }}>
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-left transition hover:brightness-[0.97]"
+                style={{ background: "oklch(0.98 0.015 25)" }}
+                onClick={() => setExpandedConflict(expandedConflict === cc.triggerId ? null : cc.triggerId)}
+              >
+                <Zap className="h-3.5 w-3.5 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
+                <span className="font-bold" style={{ color: "oklch(0.38 0.20 25)" }}>Kaskaden-Konflikt</span>
+                <span className="text-foreground font-medium">{cc.triggerCustomer}</span>
+                <span className="text-muted-foreground text-xs flex-1 truncate">· {cc.reason}</span>
+                <div className="flex gap-1 shrink-0">
+                  {cc.affected.map((a) => (
+                    <span key={a.role} className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-semibold"
+                      style={{
+                        background: a.severity === "high" ? "oklch(0.88 0.10 25 / 0.4)" : "oklch(0.90 0.08 85 / 0.4)",
+                        color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)",
+                      }}>
+                      {a.actionRequired && <TrendingDown className="h-2.5 w-2.5" />}
+                      {a.role.replace("buchbinderei","BB").replace("logistik","Log.").replace("projektmanager","PM")}
+                    </span>
+                  ))}
+                </div>
+                {expandedConflict === cc.triggerId ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+              </button>
+              {expandedConflict === cc.triggerId && (
+                <div className="px-5 pb-4 pt-2" style={{ background: "oklch(0.98 0.015 25)" }}>
+                  <div className="space-y-1 mb-3">
+                    {cc.affected.map((a) => (
+                      <div key={a.role} className="flex items-start gap-2 text-xs">
+                        <div className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
+                          style={{ background: a.severity === "high" ? "oklch(0.50 0.22 25)" : "oklch(0.55 0.17 85)" }} />
+                        <span className="font-semibold" style={{ color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)" }}>
+                          {a.role.replace("buchbinderei","Buchbinderei").replace("logistik","Logistik").replace("projektmanager","Projektmanager")}
+                        </span>
+                        <span className="text-muted-foreground">· {a.impact}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <KISuggestionsPanel role="produktionsleitung" context={cc.reason} />
+                </div>
+              )}
+            </div>
+          ))}
+          {missingFreigabe.length > 0 && (
+            <div className="flex items-center gap-3 px-5 py-3.5 text-sm" style={{ background: "oklch(0.98 0.04 85 / 0.5)" }}>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "oklch(0.52 0.17 85)" }} />
+              <span className="font-bold" style={{ color: "oklch(0.40 0.16 85)" }}>{missingFreigabe.length}× Druckfreigabe fehlt</span>
+              <span className="text-muted-foreground text-xs">{missingFreigabe.map((j) => j.customer).join(" · ")}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── KPI Cards ── */}
+      <div className="grid grid-cols-4 gap-4 px-8 mb-7 shrink-0">
+        {/* Featured: Im Druck */}
+        <div
+          className="rounded-2xl p-5 flex flex-col justify-between"
+          style={{ background: "oklch(0.16 0.008 255)", minHeight: 120 }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold" style={{ color: "oklch(0.60 0.006 255)" }}>
+              Im Druck
+            </span>
+            <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(0.24 0.008 255)" }}>
+              <Circle className="h-3.5 w-3.5 fill-current" style={{ color: "oklch(0.52 0.20 145)" }} />
+            </div>
+          </div>
+          <div className="text-5xl font-black number-display leading-none" style={{ color: "white" }}>
+            {inProduction}
+          </div>
+          <div className="text-[10px] mt-3" style={{ color: "oklch(0.55 0.006 255)" }}>
+            Maschinen laufen gerade
+          </div>
+        </div>
+
+        {/* Aktiv */}
+        <div className="rounded-2xl p-5 border border-border bg-card flex flex-col justify-between" style={{ minHeight: 120 }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">Aktive Aufträge</span>
+            <div className="h-7 w-7 rounded-lg flex items-center justify-center bg-muted">
+              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+          </div>
+          <div className="text-5xl font-black number-display leading-none">{activeJobs.length}</div>
+          <div className="text-[10px] text-muted-foreground mt-3">{doneToday} heute abgeschlossen</div>
+        </div>
+
+        {/* Blockiert */}
+        <div
+          className="rounded-2xl p-5 flex flex-col justify-between border"
+          style={{
+            minHeight: 120,
+            background: blockedCount > 0 ? "oklch(0.98 0.015 25)" : "var(--card)",
+            borderColor: blockedCount > 0 ? "oklch(0.88 0.08 25)" : "var(--border)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold"
+              style={{ color: blockedCount > 0 ? "oklch(0.50 0.22 25)" : "var(--muted-foreground)" }}>
+              Blockiert
+            </span>
+            <div className="h-7 w-7 rounded-lg flex items-center justify-center"
+              style={{ background: blockedCount > 0 ? "oklch(0.93 0.10 25 / 0.25)" : "var(--muted)" }}>
+              <Zap className="h-3.5 w-3.5" style={{ color: blockedCount > 0 ? "oklch(0.50 0.22 25)" : "var(--muted-foreground)" }} />
+            </div>
+          </div>
+          <div className="text-5xl font-black number-display leading-none"
+            style={{ color: blockedCount > 0 ? "oklch(0.50 0.22 25)" : "oklch(0.16 0.008 255)" }}>
+            {blockedCount}
+          </div>
+          <div className="text-[10px] mt-3" style={{ color: blockedCount > 0 ? "oklch(0.55 0.20 25)" : "var(--muted-foreground)" }}>
+            {blockedCount > 0 ? "Sofortiger Handlungsbedarf" : "Alles läuft planmäßig"}
+          </div>
+        </div>
+
+        {/* Freigabe fehlt */}
+        <div
+          className="rounded-2xl p-5 flex flex-col justify-between border"
+          style={{
+            minHeight: 120,
+            background: missingFreigabe.length > 0 ? "oklch(0.98 0.04 85 / 0.5)" : "var(--card)",
+            borderColor: missingFreigabe.length > 0 ? "oklch(0.88 0.10 85)" : "var(--border)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold"
+              style={{ color: missingFreigabe.length > 0 ? "oklch(0.52 0.17 85)" : "var(--muted-foreground)" }}>
+              Freigabe fehlt
+            </span>
+            <div className="h-7 w-7 rounded-lg flex items-center justify-center"
+              style={{ background: missingFreigabe.length > 0 ? "oklch(0.93 0.12 85 / 0.25)" : "var(--muted)" }}>
+              <AlertTriangle className="h-3.5 w-3.5" style={{ color: missingFreigabe.length > 0 ? "oklch(0.52 0.17 85)" : "var(--muted-foreground)" }} />
+            </div>
+          </div>
+          <div className="text-5xl font-black number-display leading-none"
+            style={{ color: missingFreigabe.length > 0 ? "oklch(0.45 0.16 85)" : "oklch(0.16 0.008 255)" }}>
+            {missingFreigabe.length}
+          </div>
+          <div className="text-[10px] mt-3" style={{ color: missingFreigabe.length > 0 ? "oklch(0.50 0.15 85)" : "var(--muted-foreground)" }}>
+            {missingFreigabe.length > 0 ? "Kunden kontaktieren" : "Alle Freigaben erteilt"}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Body: 2-col grid ── */}
+      <div className="px-8 pb-8 grid grid-cols-[1fr_320px] gap-6 flex-1 min-h-0">
+
+        {/* ── Left: Alle Aufträge ── */}
+        <div className="flex flex-col min-h-0">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
+              Aktive Aufträge
+            </span>
+            <span
+              className="text-[10px] font-black rounded-full px-2 py-0.5 number-display"
+              style={{ background: "oklch(0.22 0.008 255)", color: "white" }}
+            >
               {activeJobs.length}
             </span>
           </div>
 
-          {/* Table header */}
-          <div className="grid text-[9px] uppercase tracking-[0.12em] font-semibold text-muted-foreground px-4 mb-1.5"
-            style={{ gridTemplateColumns: "2rem 1fr 7rem 7rem 5rem 5rem" }}>
+          {/* Header row */}
+          <div
+            className="grid px-4 pb-2 text-[9px] uppercase tracking-[0.12em] font-semibold text-muted-foreground"
+            style={{ gridTemplateColumns: "2.5rem 1fr 6rem 6rem 4.5rem 5rem" }}
+          >
             <span />
-            <span>Kunde</span>
+            <span>Kunde · Produkt</span>
             <span>Phase</span>
             <span>Status</span>
             <span>Termin</span>
             <span />
           </div>
 
-          <div className="space-y-1">
-            {activeJobs.map((j) => {
+          <div className="overflow-auto space-y-1.5 pr-1">
+            {activeJobs.map((j, idx) => {
               const color = MACHINE_META[j.machine].color;
               const phaseIdx = PHASES.indexOf(j.phase);
               return (
                 <button
                   key={j.id}
                   onClick={() => setSelectedJob(j)}
-                  className="w-full text-left rounded-xl border bg-card px-4 py-3 grid items-center gap-4 hover:bg-muted/30 transition-colors"
+                  className="w-full text-left rounded-xl border px-4 py-3 grid items-center gap-3 hover:bg-muted/30 transition-colors group"
                   style={{
-                    gridTemplateColumns: "2rem 1fr 7rem 7rem 5rem 5rem",
+                    gridTemplateColumns: "2.5rem 1fr 6rem 6rem 4.5rem 5rem",
                     borderLeftWidth: 3,
                     borderLeftColor: color,
                     borderColor: j.cascadeConflict ? "oklch(0.88 0.08 25)" : "var(--border)",
-                    background: j.cascadeConflict ? "oklch(0.98 0.015 25)" : undefined,
+                    background: j.cascadeConflict
+                      ? "oklch(0.98 0.015 25)"
+                      : idx % 2 === 0
+                      ? "var(--card)"
+                      : "oklch(0.97 0.003 80 / 0.5)",
                   }}
                 >
-                  {/* Machine */}
                   <span className="text-[10px] font-black" style={{ color }}>
                     {MACHINE_DISPLAY[j.machine]}
                   </span>
 
-                  {/* Kunde + Badges */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold truncate">{j.customer}</span>
-                      {j.cascadeConflict && (
-                        <Zap className="h-3 w-3 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
-                      )}
+                      {j.cascadeConflict && <Zap className="h-3 w-3 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />}
                       {j.isNew && (
                         <span className="text-[8px] font-bold rounded-full px-1.5 py-0.5 shrink-0"
-                          style={{ background: "oklch(0.92 0.08 145 / 0.3)", color: "oklch(0.35 0.18 145)" }}>
-                          NEU
-                        </span>
+                          style={{ background: "oklch(0.92 0.08 145 / 0.3)", color: "oklch(0.35 0.18 145)" }}>NEU</span>
                       )}
                     </div>
-                    <span className="text-[9px] text-muted-foreground">{j.product}</span>
+                    <span className="text-[9px] text-muted-foreground leading-none">{j.product}</span>
                   </div>
 
-                  {/* Phase dots */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
                     {PHASES.map((_, i) => (
-                      <div key={i} className="h-1.5 flex-1 rounded-full"
+                      <div key={i} className="h-1 flex-1 rounded-full"
                         style={{
                           background: i < phaseIdx ? "oklch(0.72 0.18 145)"
                             : i === phaseIdx ? (j.cascadeConflict ? "oklch(0.50 0.22 25)" : color)
@@ -397,28 +373,135 @@ export function ProduktionsleitungView() {
                     ))}
                   </div>
 
-                  {/* ZeitStatus */}
                   <div><ZeitPill status={j.status} /></div>
 
-                  {/* Termin */}
                   <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     {j.delivery}
                   </div>
 
-                  {/* Freigabe */}
                   <div>
                     {j.druckfreigabe === "Fehlt" && (
-                      <span className="text-[8px] font-semibold rounded-md px-1.5 py-0.5"
+                      <span className="text-[8px] font-semibold rounded-md px-1.5 py-0.5 whitespace-nowrap"
                         style={{ background: "oklch(0.94 0.10 85 / 0.35)", color: "oklch(0.45 0.16 85)" }}>
                         Freigabe fehlt
                       </span>
+                    )}
+                    {j.druckfreigabe === "Erteilt" && (
+                      <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "oklch(0.65 0.18 145)" }} />
                     )}
                   </div>
                 </button>
               );
             })}
           </div>
+        </div>
+
+        {/* ── Right: Maschinen ── */}
+        <div className="flex flex-col gap-3">
+          <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-1">
+            Maschinen
+          </div>
+          {ALL_MACHINES.map((machine) => {
+            const currentJob = getCurrentJob(machine);
+            const nextJob = getNextJob(machine, currentJob?.id);
+            const color = MACHINE_META[machine].color;
+            const isBlocked = currentJob?.cascadeConflict || currentJob?.orderStatus === "Blockiert";
+            const isRunning = currentJob?.orderStatus === "In Produktion";
+            const livePrint = LIVE_PRINT.find((lp) => lp.machine === machine);
+            const jobCount = JOBS.filter(
+              (j) => j.machine === machine && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
+            ).length;
+
+            return (
+              <div
+                key={machine}
+                className="rounded-2xl border overflow-hidden"
+                style={{
+                  background: isBlocked ? "oklch(0.98 0.015 25)" : "var(--card)",
+                  borderColor: isBlocked ? "oklch(0.88 0.08 25)" : "var(--border)",
+                }}
+              >
+                {/* Machine header */}
+                <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+                  <div
+                    className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-black"
+                    style={{ background: `color-mix(in oklab, ${color} 12%, var(--background))`, color }}
+                  >
+                    {MACHINE_DISPLAY[machine].slice(0, 2)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-sm" style={{ color }}>{MACHINE_DISPLAY[machine]}</span>
+                      <span
+                        className={`h-2 w-2 rounded-full shrink-0 ${isRunning ? "pulse-chip" : ""}`}
+                        style={{
+                          background: isBlocked ? "oklch(0.55 0.22 25)" : isRunning ? "oklch(0.52 0.20 145)" : "oklch(0.82 0.003 255)",
+                        }}
+                      />
+                      <span className="text-[9px] font-semibold uppercase tracking-widest"
+                        style={{ color: isBlocked ? "oklch(0.50 0.22 25)" : isRunning ? "oklch(0.45 0.18 145)" : "var(--muted-foreground)" }}>
+                        {isBlocked ? "Blockiert" : isRunning ? "Läuft" : "Bereit"}
+                      </span>
+                      <span className="ml-auto text-[9px] font-mono text-muted-foreground">{jobCount} Aufträge</span>
+                    </div>
+                    <div className="mt-1.5">
+                      <MachineUtilBar machine={machine} color={color} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Current job */}
+                {currentJob ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJob(currentJob)}
+                    className="w-full text-left mx-3 mb-2 rounded-xl p-3 transition hover:brightness-[0.97] border"
+                    style={{
+                      background: `color-mix(in oklab, ${color} 5%, var(--background))`,
+                      borderColor: `color-mix(in oklab, ${color} 18%, var(--border))`,
+                      width: "calc(100% - 1.5rem)",
+                    }}
+                  >
+                    <div className="text-[8px] uppercase tracking-[0.12em] font-bold mb-1" style={{ color }}>Jetzt</div>
+                    <div className="text-sm font-bold truncate">{currentJob.customer}</div>
+                    {isRunning && livePrint && (
+                      <div className="mt-2">
+                        <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                          <div className="h-full rounded-full shimmer-bar" style={{ width: `${livePrint.progress}%`, background: color }} />
+                        </div>
+                        <div className="flex justify-between text-[9px] font-mono text-muted-foreground mt-1">
+                          <span>{livePrint.progress}%</span>
+                          <span>~{livePrint.finishInMin} min</span>
+                        </div>
+                      </div>
+                    )}
+                    {!isRunning && (
+                      <div className="text-[9px] font-mono text-muted-foreground mt-1">{currentJob.delivery}</div>
+                    )}
+                  </button>
+                ) : (
+                  <div className="mx-3 mb-2 rounded-xl p-3 border border-dashed border-border text-[10px] text-muted-foreground text-center">
+                    Kein Auftrag geplant
+                  </div>
+                )}
+
+                {/* Next job */}
+                {nextJob && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJob(nextJob)}
+                    className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border hover:bg-muted/30 transition text-left"
+                    style={{ width: "calc(100% - 1.5rem)" }}
+                  >
+                    <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="text-[10px] font-semibold truncate flex-1">{nextJob.customer}</span>
+                    <span className="text-[9px] font-mono text-muted-foreground shrink-0">{nextJob.delivery}</span>
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
 
       </div>
