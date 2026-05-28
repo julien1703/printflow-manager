@@ -341,7 +341,7 @@ function AuftragsPool({
 
 // ─── Main View ───────────────────────────────────────────────────────────────
 
-export function WochenplanungView() {
+export function WochenplanungView({ readOnly = false }: { readOnly?: boolean }) {
   const [activeMachine, setActiveMachine] = useState<TabView>("Gesamt");
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [grid, setGrid] = useState<Record<SlotKey, GridJob[]>>({});
@@ -473,112 +473,119 @@ export function WochenplanungView() {
     }
   }
 
-  return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
-        {/* Page header */}
-        <div className="px-8 pt-8 pb-5 shrink-0 border-b border-border">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-            Produktionsleitung · Wochenplanung
-          </div>
-          <h1 className="editorial-header text-4xl">Wochenplanung</h1>
+  const gridContent = (
+    <div className="flex flex-col fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
+      {/* Page header */}
+      <div className="px-8 pt-8 pb-5 shrink-0 border-b border-border">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
+          {readOnly ? "Wochenübersicht · Nur lesend" : "Produktionsleitung · Wochenplanung"}
         </div>
+        <h1 className="editorial-header text-4xl">Wochenplanung</h1>
+      </div>
 
-        {/* Auftragspool */}
-        {(() => {
-          const poolEingang = activeMachine === "Gesamt"
-            ? eingang
-            : activeMachine === "Digi"
-            ? []
-            : eingang.filter((j) => j.machine === activeMachine);
+      {/* Auftragspool — nur bei editierbarer Ansicht */}
+      {!readOnly && (() => {
+        const poolEingang = activeMachine === "Gesamt"
+          ? eingang
+          : activeMachine === "Digi"
+          ? []
+          : eingang.filter((j) => j.machine === activeMachine);
 
-          const poolTasche = activeMachine === "Gesamt"
-            ? tasche
-            : activeMachine === "Digi"
-            ? []
-            : tasche.filter((j) => j.machine === activeMachine);
+        const poolTasche = activeMachine === "Gesamt"
+          ? tasche
+          : activeMachine === "Digi"
+          ? []
+          : tasche.filter((j) => j.machine === activeMachine);
 
-          return (
-            <AuftragsPool
-              eingang={poolEingang}
-              tasche={poolTasche}
-              pinnedIds={pinnedIds}
-              onCardClick={(id) => setSelectedJobId(id)}
-              onKiVorschlag={handleKiPlan}
-            />
-          );
-        })()}
+        return (
+          <AuftragsPool
+            eingang={poolEingang}
+            tasche={poolTasche}
+            pinnedIds={pinnedIds}
+            onCardClick={(id) => setSelectedJobId(id)}
+            onKiVorschlag={handleKiPlan}
+          />
+        );
+      })()}
 
-        {/* Machine Tabs */}
-        <MachineTabs
-          activeTab={activeMachine}
-          onChange={setActiveMachine}
-          eingang={eingang}
-        />
+      {/* Machine Tabs */}
+      <MachineTabs
+        activeTab={activeMachine}
+        onChange={setActiveMachine}
+        eingang={readOnly ? [] : eingang}
+      />
 
-        {/* Tab content + Sidebar */}
-        <div className="flex flex-1 overflow-hidden">
-          {activeMachine === "Gesamt" ? (
-            <div className="flex flex-col flex-1 divide-y divide-border">
-              {(["CD", "SM5", "RZK"] as const).map((machine) => (
-                <div key={machine} className="shrink-0">
-                  <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
-                    {machine === "SM5" ? "SM528" : machine}
-                  </div>
-                  <WochenplanGrid
-                    machine={machine}
-                    weekOffset={currentWeekOffset}
-                    onWeekOffsetChange={setCurrentWeekOffset}
-                    grid={grid}
-                    pinnedIds={pinnedIds}
-                    onCardClick={(jobId) => setSelectedJobId(jobId)}
-                    onRemove={removeFromGrid}
-                    hideKwNav
-                  />
-                </div>
-              ))}
-              <div className="shrink-0">
+      {/* Tab content */}
+      <div className="flex flex-1 overflow-hidden">
+        {activeMachine === "Gesamt" ? (
+          <div className="flex flex-col flex-1 divide-y divide-border">
+            {(["CD", "SM5", "RZK"] as const).map((machine) => (
+              <div key={machine} className="shrink-0">
                 <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
-                  Digi
+                  {machine === "SM5" ? "SM528" : machine}
                 </div>
-                <DigiStatus />
+                <WochenplanGrid
+                  machine={machine}
+                  weekOffset={currentWeekOffset}
+                  onWeekOffsetChange={setCurrentWeekOffset}
+                  grid={grid}
+                  pinnedIds={pinnedIds}
+                  onCardClick={(jobId) => setSelectedJobId(jobId)}
+                  onRemove={removeFromGrid}
+                  hideKwNav
+                  readOnly={readOnly}
+                />
               </div>
+            ))}
+            <div className="shrink-0">
+              <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
+                Digi
+              </div>
+              <DigiStatus />
             </div>
-          ) : activeMachine === "Digi" ? (
-            <DigiStatus />
-          ) : (
-            <WochenplanGrid
-              machine={activeMachine}
-              weekOffset={currentWeekOffset}
-              onWeekOffsetChange={setCurrentWeekOffset}
-              grid={grid}
-              pinnedIds={pinnedIds}
-              onCardClick={(jobId) => setSelectedJobId(jobId)}
-              onRemove={removeFromGrid}
-            />
-          )}
-
-        </div>
-
-        {/* Auftrag Drawer */}
-        {selectedJob && (
-          <AuftragDrawer
-            job={{
-              ...selectedJob,
-              prioritaet: prioritaetOverrides[selectedJob.id] ?? selectedJob.prioritaet,
-              notiz: notizOverrides[selectedJob.id] ?? selectedJob.notiz ?? null,
-            }}
-            onToggleFestgepinnt={() => togglePinned(selectedJob.id)}
-            onClose={() => setSelectedJobId(null)}
-            onPrioritaetChange={(p) =>
-              setPrioritaetOverrides((prev) => ({ ...prev, [selectedJob.id]: p }))
-            }
-            onNotizChange={(n) =>
-              setNotizOverrides((prev) => ({ ...prev, [selectedJob.id]: n }))
-            }
+          </div>
+        ) : activeMachine === "Digi" ? (
+          <DigiStatus />
+        ) : (
+          <WochenplanGrid
+            machine={activeMachine}
+            weekOffset={currentWeekOffset}
+            onWeekOffsetChange={setCurrentWeekOffset}
+            grid={grid}
+            pinnedIds={pinnedIds}
+            onCardClick={(jobId) => setSelectedJobId(jobId)}
+            onRemove={removeFromGrid}
+            readOnly={readOnly}
           />
         )}
       </div>
+
+      {/* Auftrag Drawer */}
+      {selectedJob && (
+        <AuftragDrawer
+          job={{
+            ...selectedJob,
+            prioritaet: prioritaetOverrides[selectedJob.id] ?? selectedJob.prioritaet,
+            notiz: notizOverrides[selectedJob.id] ?? selectedJob.notiz ?? null,
+          }}
+          onToggleFestgepinnt={() => togglePinned(selectedJob.id)}
+          onClose={() => setSelectedJobId(null)}
+          onPrioritaetChange={(p) =>
+            setPrioritaetOverrides((prev) => ({ ...prev, [selectedJob.id]: p }))
+          }
+          onNotizChange={(n) =>
+            setNotizOverrides((prev) => ({ ...prev, [selectedJob.id]: n }))
+          }
+        />
+      )}
+    </div>
+  );
+
+  if (readOnly) return gridContent;
+
+  return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      {gridContent}
     </DndContext>
   );
 }

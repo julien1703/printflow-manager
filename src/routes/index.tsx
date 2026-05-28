@@ -8,7 +8,6 @@ import { LogistikView } from "@/components/plantafel/views/logistik";
 import { DruckvorstufeView } from "@/components/plantafel/views/drucker";
 import { ProjektmanagerView } from "@/components/plantafel/views/projektmanager";
 import { GeschaeftsfuehrungView } from "@/components/plantafel/views/geschaeftsfuehrung";
-import { Wochenplan } from "@/components/plantafel/wochenplan";
 import { WochenplanungView } from "@/components/plantafel/views/wochenplanung";
 
 export const Route = createFileRoute("/")({
@@ -49,10 +48,8 @@ function Index() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar role={role} onRoleChange={handleRoleChange} />
         <main className="flex-1 overflow-y-auto" key={`${role}-${effectiveNav}`}>
-          {effectiveNav === "Wochenplan" && role === "produktionsleitung" ? (
-            <WochenplanungView />
-          ) : effectiveNav === "Wochenplan" ? (
-            <Wochenplan role={role} />
+          {effectiveNav === "Wochenplan" ? (
+            <WochenplanungView readOnly={role !== "produktionsleitung"} />
           ) : (
             <>
               {role === "produktionsleitung" && <ProduktionsleitungView />}

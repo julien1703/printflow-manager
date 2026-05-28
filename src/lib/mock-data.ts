@@ -802,11 +802,11 @@ export type RoleKey = "produktionsleitung" | "buchbinderei" | "logistik" | "druc
 
 export const ROLES: { key: RoleKey; name: string; person: string; nav: string[] }[] = [
   { key: "produktionsleitung", name: "Produktionsleitung", person: "G. Maisch",  nav: ["Übersicht", "Wochenplan"] },
-  { key: "projektmanager",     name: "Projektmanager",     person: "T. Schmidt", nav: ["Übersicht"] },
-  { key: "druckvorstufe",      name: "Druckvorstufe",      person: "K. Weber",   nav: ["Übersicht"] },
+  { key: "projektmanager",     name: "Projektmanager",     person: "T. Schmidt", nav: ["Übersicht", "Wochenplan"] },
+  { key: "druckvorstufe",      name: "Druckvorstufe",      person: "K. Weber",   nav: ["Übersicht", "Wochenplan"] },
   { key: "buchbinderei",       name: "Buchbinderei / WV",  person: "H. Seifert", nav: ["Übersicht", "Wochenplan"] },
-  { key: "logistik",           name: "Logistik & Versand", person: "A. Batt",    nav: ["Übersicht"] },
-  { key: "geschaeftsfuehrung", name: "Geschäftsführung",   person: "R. Pfitzer", nav: ["Übersicht"] },
+  { key: "logistik",           name: "Logistik & Versand", person: "A. Batt",    nav: ["Übersicht", "Wochenplan"] },
+  { key: "geschaeftsfuehrung", name: "Geschäftsführung",   person: "R. Pfitzer", nav: ["Übersicht", "Wochenplan"] },
 ];
 
 /* ========== Live print status ========== */
