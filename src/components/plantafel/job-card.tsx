@@ -17,8 +17,8 @@ interface JobCardProps {
   gridJob: GridJob;
   isPinned: boolean;
   isAi: boolean;
-  width: number;
-  left: number;
+  height: number;
+  sourceSlotKey: string;
   onClick: () => void;
   onRemove: () => void;
   machineAccent: string;
@@ -45,8 +45,8 @@ export function JobCard({
   gridJob,
   isPinned,
   isAi,
-  width,
-  left,
+  height,
+  sourceSlotKey,
   onClick,
   onRemove,
   machineAccent,
@@ -54,8 +54,9 @@ export function JobCard({
   const [shaking, setShaking] = useState(false);
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: job.id,
+    id: `grid:${sourceSlotKey}:${job.id}`,
     disabled: isPinned,
+    data: { jobId: job.id, source: "grid", sourceSlotKey },
   });
 
   function handlePinnedAttempt() {
@@ -80,18 +81,14 @@ export function JobCard({
       {...(isPinned ? {} : { ...listeners, ...attributes })}
       onClick={isPinned ? handlePinnedAttempt : onClick}
       title={isPinned ? "Festgepinnt — nicht verschiebbar" : undefined}
-      className={`absolute select-none rounded-lg overflow-hidden border border-border/60 shadow-sm group transition-opacity ${
+      className={`relative flex-1 min-w-0 select-none rounded-lg overflow-hidden border border-border/60 shadow-sm group transition-opacity ${
         isDragging ? "opacity-30" : "opacity-100"
       } ${shaking ? "gepinnt-blocked" : ""} ${isAi ? "ki-pulse" : ""}`}
       style={{
-        top: 4,
-        height: 80,
-        left,
-        width,
+        height,
         background: isAi ? "oklch(0.95 0.04 280)" : background,
         borderLeft: isAi ? "4px dashed oklch(0.55 0.22 258 / 0.7)" : pinnedBorder,
         cursor: isPinned ? "not-allowed" : isDragging ? "grabbing" : "grab",
-        zIndex: isDragging ? 999 : undefined,
       }}
     >
       {/* Top accent bar */}

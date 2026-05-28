@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   useDraggable,
   type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   JOBS, SLOTS_BY_MACHINE,
@@ -29,6 +33,7 @@ interface ManualJob {
   phase: "Im Druck";
   aiSuggested: false;
   reason?: string;
+  startOffset?: number; // hours from slot start (0–8)
 }
 
 type GridJob = PlacedJob | ManualJob;
@@ -109,25 +114,19 @@ function DigiStatus() {
   );
 }
 
-// ─── PoolKarte — einheitliche Karte für alle ungeplanten Aufträge ─────────────
+// ─── PoolKarteInhalt — reiner visueller Inhalt (auch für DragOverlay) ─────────
 
-function PoolKarte({
+function PoolKarteInhalt({
   job,
   isNew,
   isPinned,
-  onClick,
+  fixedHeight = true,
 }: {
   job: Job;
   isNew: boolean;
   isPinned: boolean;
-  onClick: () => void;
+  fixedHeight?: boolean;
 }) {
-  const prefix = isNew ? "eingang" : "tasche";
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `${prefix}:${job.id}`,
-    data: { jobId: job.id, source: prefix },
-  });
-
   const machineColor =
     job.machine === "CD"   ? "var(--machine-cd)"   :
     job.machine === "SM5"  ? "var(--machine-sm5)"  :
@@ -138,24 +137,14 @@ function PoolKarte({
   const hasDruckfreigabeProblem =
     job.druckfreigabe === "Fehlt" || job.druckfreigabe === "Angefordert";
   const druckdatenFehlen = job.druckdatenEingang === null;
-
   const deliveryColor = isLate ? "oklch(0.52 0.20 25)" : "oklch(0.40 0.04 0)";
 
   return (
     <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      onClick={onClick}
-      className={`shrink-0 rounded-xl border overflow-hidden transition-all select-none ${
-        isNew ? "neu-ring" : ""
-      } ${
-        isDragging
-          ? "opacity-30 scale-95 cursor-grabbing shadow-xl"
-          : "cursor-grab hover:shadow-md hover:-translate-y-0.5"
-      }`}
+      className="rounded-xl border overflow-hidden"
       style={{
         width: 176,
+        height: fixedHeight ? 108 : undefined,
         background: isLate
           ? "oklch(0.98 0.02 25)"
           : hasDruckfreigabeProblem
@@ -168,9 +157,6 @@ function PoolKarte({
           : "oklch(0.88 0.003 80)",
       }}
     >
-      {/* Maschinenfarb-Balken */}
-      <div className="h-1" style={{ backgroundColor: machineColor }} />
-
       <div className="px-2.5 pt-2 pb-2 space-y-1.5">
         {/* Zeile 1: Maschine + Badges + Termin */}
         <div className="flex items-center gap-1 flex-wrap">
@@ -181,7 +167,7 @@ function PoolKarte({
             {job.machine === "SM5" ? "SM528" : job.machine}
           </span>
           {isNew && (
-            <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold leading-none pulse-chip"
+            <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold leading-none"
               style={{ background: "oklch(0.35 0.18 145 / 0.12)", color: "oklch(0.30 0.16 145)" }}>
               NEU
             </span>
@@ -263,23 +249,67 @@ function PoolKarte({
   );
 }
 
+// ─── PoolKarte — draggable Wrapper ────────────────────────────────────────────
+
+function PoolKarte({
+  job,
+  isNew,
+  isPinned,
+  onClick,
+}: {
+  job: Job;
+  isNew: boolean;
+  isPinned: boolean;
+  onClick: () => void;
+}) {
+  const prefix = isNew ? "eingang" : "tasche";
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `${prefix}:${job.id}`,
+    data: { jobId: job.id, source: prefix },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={onClick}
+      className={`shrink-0 select-none transition-opacity ${
+        isDragging
+          ? "opacity-30 cursor-grabbing"
+          : "cursor-grab hover:ring-2 hover:ring-foreground/25 hover:ring-inset rounded-xl"
+      }`}
+      style={{ width: 176 }}
+    >
+      <PoolKarteInhalt job={job} isNew={isNew} isPinned={isPinned} />
+    </div>
+  );
+}
+
 // ─── AuftragsPool — kombinierter horizontaler Streifen ────────────────────────
 
 function AuftragsPool({
   eingang,
   tasche,
   pinnedIds,
+  activeMachine,
   onCardClick,
   onKiVorschlag,
 }: {
   eingang: Job[];
   tasche: Job[];
   pinnedIds: Set<string>;
+  activeMachine: TabView;
   onCardClick: (id: string) => void;
   onKiVorschlag: () => void;
 }) {
+  const filterMachine = activeMachine === "Gesamt" ? null : activeMachine;
+  const visibleEingang = filterMachine ? eingang.filter((j) => j.machine === filterMachine) : eingang;
+  const visibleTasche  = filterMachine ? tasche.filter((j)  => j.machine === filterMachine) : tasche;
+
   const total = eingang.length + tasche.length;
   const neuCount = eingang.length;
+  const visibleTotal = visibleEingang.length + visibleTasche.length;
 
   return (
     <div className="shrink-0 border-b border-border" style={{ background: "oklch(0.975 0.004 255)" }}>
@@ -290,12 +320,12 @@ function AuftragsPool({
         </span>
         <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
           style={{ background: "oklch(0.88 0.003 80)", color: "oklch(0.40 0.006 255)" }}>
-          {total}
+          {filterMachine ? `${visibleTotal} / ${total}` : total}
         </span>
-        {neuCount > 0 && (
-          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold pulse-chip"
+        {visibleEingang.length > 0 && (
+          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
             style={{ background: "oklch(0.35 0.18 145 / 0.10)", color: "oklch(0.30 0.16 145)" }}>
-            {neuCount} NEU
+            {visibleEingang.length} NEU
           </span>
         )}
         <button
@@ -310,9 +340,9 @@ function AuftragsPool({
       </div>
 
       {/* Karten-Streifen */}
-      <div className="flex gap-2.5 overflow-x-auto px-6 pb-3">
+      <div className="flex gap-2.5 overflow-x-auto px-6 pb-3" style={{ minHeight: 120 }}>
         {/* Neue Aufträge zuerst */}
-        {eingang.map((job) => (
+        {visibleEingang.map((job) => (
           <PoolKarte
             key={job.id}
             job={job}
@@ -322,11 +352,11 @@ function AuftragsPool({
           />
         ))}
         {/* Trennlinie wenn beide vorhanden */}
-        {eingang.length > 0 && tasche.length > 0 && (
+        {visibleEingang.length > 0 && visibleTasche.length > 0 && (
           <div className="shrink-0 w-px self-stretch my-1" style={{ background: "oklch(0.85 0.003 80)" }} />
         )}
         {/* Bestehende Aufträge */}
-        {tasche.map((job) => (
+        {visibleTasche.map((job) => (
           <PoolKarte
             key={job.id}
             job={job}
@@ -335,8 +365,10 @@ function AuftragsPool({
             onClick={() => onCardClick(job.id)}
           />
         ))}
-        {total === 0 && (
-          <p className="text-[11px] text-muted-foreground py-4">Alle Aufträge eingeplant</p>
+        {visibleTotal === 0 && (
+          <p className="text-[11px] text-muted-foreground py-4">
+            {filterMachine ? `Alle ${filterMachine}-Aufträge eingeplant` : "Alle Aufträge eingeplant"}
+          </p>
         )}
       </div>
     </div>
@@ -359,10 +391,14 @@ export function WochenplanungView() {
     () => new Set(JOBS.filter((j) => j.festgepinnt).map((j) => j.id))
   );
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  const [dragSourceSlot, setDragSourceSlot] = useState<string | null>(null);
   const [prioritaetOverrides, setPrioritaetOverrides] = useState<
     Record<string, Job["prioritaet"]>
   >({});
   const [notizOverrides, setNotizOverrides] = useState<Record<string, string>>({});
+  const [dragPointerY, setDragPointerY] = useState(0);
+  const moveRafRef = useRef<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -399,60 +435,153 @@ export function WochenplanungView() {
     });
   }
 
+  function handleDragStart(event: DragStartEvent) {
+    const id = event.active.id as string;
+    setDragActiveId(id);
+    if (id.startsWith("grid:")) {
+      // format: "grid:{slotKey}:{jobId}" — slotKey has 3 pipes so split from right
+      const withoutPrefix = id.slice(5); // remove "grid:"
+      const lastColon = withoutPrefix.lastIndexOf(":");
+      setDragSourceSlot(withoutPrefix.slice(0, lastColon));
+    } else {
+      setDragSourceSlot(null);
+    }
+  }
+
+  function handleDragMove(event: DragMoveEvent) {
+    const y = (event.activatorEvent as PointerEvent).clientY + event.delta.y;
+    if (moveRafRef.current !== null) cancelAnimationFrame(moveRafRef.current);
+    moveRafRef.current = requestAnimationFrame(() => {
+      setDragPointerY(y);
+      moveRafRef.current = null;
+    });
+  }
+
+  function calcStartOffset(event: DragEndEvent, slotKeyTarget: string, excludeJobId?: string): number {
+    const overRect = event.over?.rect;
+    if (!overRect) return 0;
+
+    // Zeiger-Y beim Drop: activatorEvent ist das initiale PointerEvent, delta.y die Gesamtverschiebung
+    const pointerY = (event.activatorEvent as PointerEvent).clientY + event.delta.y;
+    const relativeY = Math.max(0, pointerY - overRect.top);
+    const rawOffset = (relativeY / overRect.height) * 8; // 0–8h
+
+    // Andere Karten im Slot als sortierte Intervalle
+    const others = (grid[slotKeyTarget] ?? [])
+      .filter((ej) => ej.jobId !== excludeJobId)
+      .map((ej) => {
+        const dur = JOBS.find((j) => j.id === ej.jobId)?.druckzeitStunden ?? 1;
+        const start = ej.startOffset ?? 0;
+        return { start, end: start + dur };
+      })
+      .sort((a, b) => a.start - b.start);
+
+    // 1. Einrasten an Stunden-Rasterlinie (= jeder sichtbarer Strich)
+    let offset = Math.round(rawOffset);
+
+    // 2. Kartenende-Snap überschreibt Rasterlinie wenn innerhalb 0.6h
+    for (const s of others) {
+      if (Math.abs(rawOffset - s.end) < 0.6) {
+        offset = s.end;
+        break;
+      }
+    }
+
+    // 3. Überlappung auflösen: fällt offset in eine bestehende Karte → ans Ende schieben
+    let guard = 0;
+    let moved = true;
+    while (moved && guard < 10) {
+      moved = false;
+      guard++;
+      for (const s of others) {
+        if (offset >= s.start - 0.01 && offset < s.end) {
+          offset = s.end;
+          moved = true;
+          break;
+        }
+      }
+    }
+
+    return Math.max(0, Math.min(7, offset));
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    if (moveRafRef.current !== null) { cancelAnimationFrame(moveRafRef.current); moveRafRef.current = null; }
+    setDragActiveId(null);
+    setDragSourceSlot(null);
     const { active, over } = event;
     if (!over) return;
 
     const activeId = active.id as string;
     const slotKeyTarget = over.id as string;
 
-    // Determine job ID — draggables use prefix "eingang:" or "tasche:"
-    const jobId = activeId.startsWith("eingang:")
-      ? activeId.slice(8)
-      : activeId.startsWith("tasche:")
-      ? activeId.slice(7)
-      : activeId;
-
-    // Parse slot key: "weekOffset|machine|day|slot"
+    // Parse target slot key: "weekOffset|machine|day|slot"
     const parts = slotKeyTarget.split("|");
     if (parts.length !== 4) return;
-    const [weekOffsetStr, machine, day, slot] = parts as [string, Machine, Weekday, Slot];
-    const targetWeekOffset = parseInt(weekOffsetStr, 10);
+    const [, machine, day, slot] = parts as [string, Machine, Weekday, Slot];
 
     if (!SLOTS_BY_MACHINE[machine].includes(slot)) return;
 
-    const job =
-      eingang.find((j) => j.id === jobId) ??
-      tasche.find((j) => j.id === jobId);
-    if (!job) return;
+    // ── Case A: drag from pool (eingang / tasche) ──
+    if (activeId.startsWith("eingang:") || activeId.startsWith("tasche:")) {
+      const jobId = activeId.startsWith("eingang:") ? activeId.slice(8) : activeId.slice(7);
+      const job = eingang.find((j) => j.id === jobId) ?? tasche.find((j) => j.id === jobId);
+      if (!job || job.machine !== machine) return;
 
-    // Machine must match
-    if (job.machine !== machine) return;
+      const existingJobs = grid[slotKeyTarget] ?? [];
+      const usedHours = existingJobs.reduce((sum, gj) => sum + (JOBS.find((x) => x.id === gj.jobId)?.druckzeitStunden ?? 1), 0);
+      if (usedHours + (job.druckzeitStunden ?? 1) > 8) return;
 
-    // Capacity check: sum of existing hours in slot ≤ 8h
-    const existingJobs = grid[slotKeyTarget] ?? [];
-    const usedHours = existingJobs.reduce((sum, gj) => {
-      const j = JOBS.find((x) => x.id === gj.jobId);
-      return sum + (j?.druckzeitStunden ?? 1);
-    }, 0);
-    if (usedHours + (job.druckzeitStunden ?? 1) > 8) return;
+      const startOffset = calcStartOffset(event, slotKeyTarget);
+      setGrid((prev) => ({
+        ...prev,
+        [slotKeyTarget]: [...(prev[slotKeyTarget] ?? []), { jobId: job.id, customer: job.customer, machine: job.machine, delivery: job.delivery, phase: "Im Druck", aiSuggested: false, startOffset } as ManualJob],
+      }));
+      setEingang((prev) => prev.filter((j) => j.id !== jobId));
+      setTasche((prev) => prev.filter((j) => j.id !== jobId));
+      return;
+    }
 
-    const newGridJob: ManualJob = {
-      jobId: job.id,
-      customer: job.customer,
-      machine: job.machine,
-      delivery: job.delivery,
-      phase: "Im Druck",
-      aiSuggested: false,
-    };
+    // ── Case B: drag from grid ──
+    if (activeId.startsWith("grid:")) {
+      const withoutPrefix = activeId.slice(5);
+      const lastColon = withoutPrefix.lastIndexOf(":");
+      const sourceSlot = withoutPrefix.slice(0, lastColon);
+      const jobId = withoutPrefix.slice(lastColon + 1);
 
-    setGrid((prev) => ({
-      ...prev,
-      [slotKeyTarget]: [...(prev[slotKeyTarget] ?? []), newGridJob],
-    }));
+      const sourceJobs = grid[sourceSlot] ?? [];
+      const movingJob = sourceJobs.find((gj) => gj.jobId === jobId);
+      if (!movingJob) return;
 
-    setEingang((prev) => prev.filter((j) => j.id !== jobId));
-    setTasche((prev) => prev.filter((j) => j.id !== jobId));
+      const fullJob = JOBS.find((j) => j.id === jobId);
+      if (fullJob && fullJob.machine !== machine) return;
+
+      // Same slot: update startOffset (reposition within slot)
+      const startOffset = calcStartOffset(event, slotKeyTarget, jobId);
+      if (sourceSlot === slotKeyTarget) {
+        setGrid((prev) => ({
+          ...prev,
+          [slotKeyTarget]: (prev[slotKeyTarget] ?? []).map((gj) =>
+            gj.jobId === jobId ? { ...gj, startOffset } : gj
+          ),
+        }));
+        return;
+      }
+
+      const targetJobs = grid[slotKeyTarget] ?? [];
+      const usedHours = targetJobs.reduce((sum, gj) => sum + (JOBS.find((x) => x.id === gj.jobId)?.druckzeitStunden ?? 1), 0);
+      if (usedHours + (fullJob?.druckzeitStunden ?? 1) > 8) return;
+
+      setGrid((prev) => {
+        const next = { ...prev };
+        const kept = (next[sourceSlot] ?? []).filter((gj) => gj.jobId !== jobId);
+        if (kept.length === 0) delete next[sourceSlot];
+        else next[sourceSlot] = kept;
+        next[slotKeyTarget] = [...(next[slotKeyTarget] ?? []), { ...movingJob, startOffset }];
+        return next;
+      });
+      return;
+    }
   }
 
   function removeFromGrid(key: SlotKey, jobId: string) {
@@ -478,7 +607,7 @@ export function WochenplanungView() {
   }
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
       <div className="flex flex-col fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
         {/* Page header */}
         <div className="px-8 pt-8 pb-5 shrink-0 border-b border-border">
@@ -490,6 +619,7 @@ export function WochenplanungView() {
           eingang={eingang}
           tasche={tasche}
           pinnedIds={pinnedIds}
+          activeMachine={activeMachine}
           onCardClick={(id) => setSelectedJobId(id)}
           onKiVorschlag={handleKiPlan}
         />
@@ -504,7 +634,38 @@ export function WochenplanungView() {
         {/* Tab content + Sidebar */}
         <div className="flex flex-1 overflow-hidden">
           {activeMachine === "Gesamt" ? (
-            <div className="flex flex-col flex-1 divide-y divide-border">
+            <div className="flex flex-col flex-1 divide-y divide-border overflow-auto">
+              {/* KW-Navigation für Gesamt-Ansicht */}
+              <div className="flex items-center gap-1 px-6 py-2 border-b border-border bg-background/80 backdrop-blur-sm shrink-0 sticky top-0 z-10">
+                <button
+                  type="button"
+                  onClick={() => setCurrentWeekOffset((o) => Math.max(0, o - 1))}
+                  disabled={currentWeekOffset === 0}
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30 transition"
+                >‹</button>
+                {([21, 22, 23, 24] as const).map((kw, i) => (
+                  <button
+                    key={kw}
+                    type="button"
+                    onClick={() => setCurrentWeekOffset(i)}
+                    className="px-3 py-1 rounded text-sm font-medium transition"
+                    style={
+                      i === currentWeekOffset
+                        ? { background: "oklch(0.20 0.00 0)", color: "white" }
+                        : { color: "oklch(0.45 0.00 0)" }
+                    }
+                  >
+                    KW {kw}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCurrentWeekOffset((o) => Math.min(3, o + 1))}
+                  disabled={currentWeekOffset === 3}
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30 transition"
+                >›</button>
+              </div>
+
               {(["CD", "SM5", "RZK"] as const).map((machine) => (
                 <div key={machine} className="shrink-0">
                   <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
@@ -519,6 +680,8 @@ export function WochenplanungView() {
                     onCardClick={(jobId) => setSelectedJobId(jobId)}
                     onRemove={removeFromGrid}
                     hideKwNav
+                    isDraggingActive={dragActiveId !== null}
+                    dragPointerY={dragPointerY}
                   />
                 </div>
               ))}
@@ -540,6 +703,8 @@ export function WochenplanungView() {
               pinnedIds={pinnedIds}
               onCardClick={(jobId) => setSelectedJobId(jobId)}
               onRemove={removeFromGrid}
+              isDraggingActive={dragActiveId !== null}
+              dragPointerY={dragPointerY}
             />
           )}
 
@@ -564,6 +729,45 @@ export function WochenplanungView() {
           />
         )}
       </div>
+
+      {/* Drag Overlay — schwebende Karte, die dem Cursor folgt */}
+      <DragOverlay dropAnimation={null}>
+        {dragActiveId ? (() => {
+          let job: Job | undefined;
+          let isNew = false;
+          let isPinned = false;
+
+          if (dragActiveId.startsWith("grid:")) {
+            const withoutPrefix = dragActiveId.slice(5);
+            const jobId = withoutPrefix.slice(withoutPrefix.lastIndexOf(":") + 1);
+            job = JOBS.find((j) => j.id === jobId);
+            isPinned = pinnedIds.has(jobId);
+          } else {
+            const rawId = dragActiveId.startsWith("eingang:")
+              ? dragActiveId.slice(8)
+              : dragActiveId.startsWith("tasche:")
+              ? dragActiveId.slice(7)
+              : dragActiveId;
+            job = eingang.find((j) => j.id === rawId) ?? tasche.find((j) => j.id === rawId);
+            isNew = eingang.some((j) => j.id === rawId);
+            isPinned = pinnedIds.has(rawId);
+          }
+
+          if (!job) return null;
+          return (
+            <div
+              className="pointer-events-none"
+              style={{
+                transform: "rotate(-1.5deg) scale(1.04)",
+                transformOrigin: "top left",
+                filter: "drop-shadow(0 8px 24px oklch(0 0 0 / 0.18))",
+              }}
+            >
+              <PoolKarteInhalt job={job} isNew={isNew} isPinned={isPinned} fixedHeight={false} />
+            </div>
+          );
+        })() : null}
+      </DragOverlay>
     </DndContext>
   );
 }

@@ -1,4 +1,4 @@
-import { useDroppable } from "@dnd-kit/core";
+import { useDroppable, useDndContext } from "@dnd-kit/core";
 import { WEEKDAYS, SLOTS_BY_MACHINE, TODAY_INDEX, MACHINE_META, JOBS } from "@/lib/mock-data";
 import type { Machine, Weekday, Slot, Job } from "@/lib/mock-data";
 import { JobCard } from "./job-card";
@@ -10,6 +10,7 @@ type GridJob = {
   delivery: string;
   aiSuggested?: boolean;
   reason?: string;
+  startOffset?: number; // hours from slot start (0–8), undefined = auto-sequential
 };
 
 type SlotKey = string;
@@ -18,12 +19,29 @@ function slotKey(weekOffset: number, machine: Machine, day: Weekday, slot: Slot)
   return `${weekOffset}|${machine}|${day}|${slot}`;
 }
 
-// 1h = 60px, 8h shift = 480px
-function cardWidth(druckzeitStunden: number | undefined): number {
-  return Math.max(60, ((druckzeitStunden ?? 1) / 8) * 480);
+// Höhe einer Karte proportional zur Schichtlänge (8h = volle Zeilenhöhe)
+function cardHeight(druckzeitStunden: number | undefined, rowHeight: number): number {
+  return Math.max(20, Math.min(rowHeight - 8, ((druckzeitStunden ?? 1) / 8) * rowHeight));
+}
+
+// Berechnet den vertikalen Startoffset (in Stunden) für jede Karte
+function computeOffsets(jobs: GridJob[]): Record<string, number> {
+  const result: Record<string, number> = {};
+  let cursor = 0;
+  for (const gj of jobs) {
+    const off = gj.startOffset ?? cursor;
+    result[gj.jobId] = off;
+    const dur = JOBS.find((j) => j.id === gj.jobId)?.druckzeitStunden ?? 1;
+    cursor = off + dur;
+  }
+  return result;
 }
 
 const SLOT_LABEL: Record<Slot, string> = { Früh: "F", Spät: "S", Nacht: "N" };
+
+// Startzeit jeder Schicht (in Stunden, 0–23)
+const SLOT_START: Record<Slot, number> = { Früh: 6, Spät: 14, Nacht: 22 };
+const SLOT_RANGE: Record<Slot, string>  = { Früh: "06–14", Spät: "14–22", Nacht: "22–06" };
 
 const WEEK_DAYS_LABELS: Record<Weekday, (kw: number) => string> = {
   Mo: (kw) => `Mo ${kw === 21 ? "19.05" : kw === 22 ? "26.05" : kw === 23 ? "02.06" : "09.06"}`,
@@ -49,6 +67,8 @@ interface WochenplanGridProps {
   onCardClick: (jobId: string) => void;
   onRemove: (key: SlotKey, jobId: string) => void;
   hideKwNav?: boolean;
+  isDraggingActive?: boolean;
+  dragPointerY?: number;
 }
 
 function DropZoneRow({
@@ -64,6 +84,9 @@ function DropZoneRow({
   accent,
   isToday,
   isRzk,
+  rowHeight,
+  dragPointerY,
+  isLastSlot,
 }: {
   id: SlotKey;
   machine: Machine;
@@ -77,55 +100,120 @@ function DropZoneRow({
   accent: string;
   isToday: boolean;
   isRzk: boolean;
+  rowHeight: number;
+  dragPointerY: number;
+  isLastSlot: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-  const rowHeight = isRzk ? 64 : 88;
+  const { setNodeRef, isOver, rect } = useDroppable({ id });
+  const { active } = useDndContext();
+  const offsets = computeOffsets(jobs);
 
-  let stackLeft = 0;
+  // Ghost-Karte: Position + Höhe für den Drop-Indikator berechnen
+  let ghostTop: number | null = null;
+  let ghostHeight = 20;
+  if (isOver && rect.current) {
+    const relY = Math.max(0, dragPointerY - rect.current.top);
+    const rawOff = (relY / rowHeight) * 8;
+    const snapHour = Math.max(0, Math.min(7, Math.round(rawOff)));
+    ghostTop = (snapHour / 8) * rowHeight;
+
+    // Druckzeit des aktiven Auftrags herausfinden für korrekte Höhe
+    if (active?.id) {
+      const activeId = active.id as string;
+      let jobId: string | undefined;
+      if (activeId.startsWith("grid:")) {
+        const wp = activeId.slice(5);
+        jobId = wp.slice(wp.lastIndexOf(":") + 1);
+      } else if (activeId.startsWith("eingang:")) jobId = activeId.slice(8);
+      else if (activeId.startsWith("tasche:")) jobId = activeId.slice(7);
+      const dur = JOBS.find((j) => j.id === jobId)?.druckzeitStunden ?? 1;
+      ghostHeight = Math.max(20, Math.min(rowHeight - 8, (dur / 8) * rowHeight));
+    }
+  }
 
   return (
     <div
       ref={setNodeRef}
-      className="relative border-b border-border/40 transition-colors"
+      className="relative overflow-hidden"
       style={{
         height: rowHeight,
         background: isOver
-          ? "oklch(0.70 0.14 240 / 0.10)"
+          ? "oklch(0.70 0.14 240 / 0.06)"
           : isToday
           ? "oklch(0.97 0.05 85 / 0.25)"
           : undefined,
         borderLeft: isToday ? `2px solid oklch(0.72 0.14 85)` : "2px solid transparent",
+        borderBottom: isLastSlot ? undefined : "1px solid oklch(0.60 0.005 255 / 0.38)",
         opacity: isRzk ? 0.7 : 1,
       }}
     >
+      {/* Stunden-Rasterlinien */}
+      {Array.from({ length: 7 }, (_, i) => i + 1).map((h) => (
+        <div
+          key={h}
+          style={{
+            position: "absolute",
+            top: `${(h / 8) * 100}%`,
+            left: 0,
+            right: 0,
+            height: 1,
+            background: "oklch(0.88 0.003 80 / 0.55)",
+            pointerEvents: "none",
+          }}
+        />
+      ))}
+
+      {/* Ghost-Karte: zeigt exakt wo der Auftrag einrasten wird */}
+      {ghostTop !== null && (
+        <div
+          style={{
+            position: "absolute",
+            top: ghostTop,
+            left: 4,
+            right: 4,
+            height: ghostHeight,
+            background: "oklch(0.70 0.14 240 / 0.12)",
+            border: "2px dashed oklch(0.55 0.18 255 / 0.7)",
+            borderRadius: 8,
+            pointerEvents: "none",
+            zIndex: 5,
+          }}
+        />
+      )}
+
+      {/* Karten */}
       {jobs.map((gj) => {
         const fullJob = JOBS.find((j) => j.id === gj.jobId);
-        const w = cardWidth(fullJob?.druckzeitStunden);
-        const l = stackLeft;
-        stackLeft += w + 4;
+        const off = offsets[gj.jobId] ?? 0;
+        const top = (off / 8) * rowHeight;
+        const h = cardHeight(fullJob?.druckzeitStunden, rowHeight);
         return (
-          <JobCard
+          <div
             key={gj.jobId}
-            job={fullJob ?? ({
-              id: gj.jobId,
-              customer: gj.customer,
-              machine: gj.machine,
-              delivery: gj.delivery,
-              product: "",
-              phase: "Im Druck",
-              orderStatus: "In Produktion",
-              status: "Nach Plan",
-              openSubsteps: 0,
-            } as Job)}
-            gridJob={gj}
-            isPinned={pinnedIds.has(gj.jobId)}
-            isAi={!!gj.aiSuggested}
-            width={w}
-            left={l}
-            onClick={() => onCardClick(gj.jobId)}
-            onRemove={() => onRemove(id, gj.jobId)}
-            machineAccent={accent}
-          />
+            style={{ position: "absolute", top, left: 4, right: 4 }}
+          >
+            <JobCard
+              job={fullJob ?? ({
+                id: gj.jobId,
+                customer: gj.customer,
+                machine: gj.machine,
+                delivery: gj.delivery,
+                product: "",
+                phase: "Im Druck",
+                orderStatus: "In Produktion",
+                status: "Nach Plan",
+                openSubsteps: 0,
+              } as Job)}
+              gridJob={gj}
+              isPinned={pinnedIds.has(gj.jobId)}
+              isAi={!!gj.aiSuggested}
+              height={h}
+              sourceSlotKey={id}
+              onClick={() => onCardClick(gj.jobId)}
+              onRemove={() => onRemove(id, gj.jobId)}
+              machineAccent={accent}
+            />
+          </div>
         );
       })}
     </div>
@@ -141,6 +229,8 @@ export function WochenplanGrid({
   onCardClick,
   onRemove,
   hideKwNav = false,
+  isDraggingActive = false,
+  dragPointerY = 0,
 }: WochenplanGridProps) {
   const meta = MACHINE_META[machine];
   const accent =
@@ -151,6 +241,7 @@ export function WochenplanGrid({
   const slots = SLOTS_BY_MACHINE[machine];
   const isRzk = machine === "RZK";
   const kw = KW_META[weekOffset]?.kw ?? 21;
+  const rowHeight = isDraggingActive ? 320 : 88;
 
   return (
     <div className="flex flex-col flex-1 overflow-auto">
@@ -218,23 +309,71 @@ export function WochenplanGrid({
       </div>
 
       {/* Slot rows */}
-      {slots.map((slot) => (
+      {slots.map((slot, slotIndex) => {
+        const isLastSlot = slotIndex === slots.length - 1;
+        return (
         <div
           key={slot}
           className="grid"
           style={{ gridTemplateColumns: `64px repeat(${WEEKDAYS.length}, 1fr)` }}
         >
-          {/* Slot label */}
+          {/* Slot label — Uhrzeit-Lineal, immer aktiv */}
           <div
-            className="flex items-center justify-center border-r border-border border-b border-border/40 shrink-0"
-            style={{ height: isRzk ? 64 : 88 }}
+            className="relative border-r shrink-0 overflow-hidden"
+            style={{ height: rowHeight, borderBottom: isLastSlot ? undefined : "1px solid oklch(0.60 0.005 255 / 0.38)" }}
           >
-            <span
-              className="text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center"
-              style={{ background: `${accent}22`, color: accent }}
-            >
-              {SLOT_LABEL[slot]}
-            </span>
+            {/* Anfangszeit, immer sehr subtil oben rechts */}
+            {!isDraggingActive && (
+              <span
+                className="absolute top-0.5 right-1 font-mono leading-none select-none"
+                style={{ fontSize: 7, color: "oklch(0.45 0.006 255)", opacity: 0.40 }}
+              >
+                {`${String(SLOT_START[slot]).padStart(2, "0")}:00`}
+              </span>
+            )}
+
+            {isDraggingActive ? (
+              // Erweiterter Modus: vollständiges Uhrzeit-Lineal
+              Array.from({ length: 8 }, (_, i) => {
+                const hour = (SLOT_START[slot] + i) % 24;
+                const lineTop = (i / 8) * rowHeight;
+                const top = i === 0 ? 1 : lineTop - 5;
+                return (
+                  <div
+                    key={i}
+                    className="absolute flex items-center"
+                    style={{ top, left: 3, right: 4 }}
+                  >
+                    <span
+                      className="font-mono leading-none whitespace-nowrap"
+                      style={{
+                        fontSize: 9,
+                        color: i === 0 ? accent : "oklch(0.50 0.006 255)",
+                        opacity: i === 0 ? 0.70 : 0.48,
+                      }}
+                    >
+                      {`${String(hour).padStart(2, "0")}:00`}
+                    </span>
+                    {i > 0 && (
+                      <div
+                        className="flex-1 ml-1"
+                        style={{ height: 1, background: "oklch(0.82 0.003 80 / 0.6)" }}
+                      />
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              // Standard-Modus: Schicht-Buchstabe zentriert als Hauptindikator
+              <div className="flex items-center justify-center h-full">
+                <span
+                  className="font-bold leading-none rounded-full w-5 h-5 flex items-center justify-center"
+                  style={{ fontSize: 10, background: `${accent}22`, color: accent }}
+                >
+                  {SLOT_LABEL[slot]}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Day cells */}
@@ -257,12 +396,16 @@ export function WochenplanGrid({
                   accent={accent}
                   isToday={isToday}
                   isRzk={isRzk}
+                  rowHeight={rowHeight}
+                  dragPointerY={dragPointerY}
+                  isLastSlot={isLastSlot}
                 />
               </div>
             );
           })}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
