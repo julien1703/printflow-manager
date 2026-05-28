@@ -93,7 +93,7 @@ export function ProduktionsleitungView() {
   const missingFreigabe = JOBS.filter(
     (j) => j.druckfreigabe === "Fehlt" && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
   );
-  const doneToday = JOBS.filter((j) => j.orderStatus === "Abgeschlossen").length;
+
 
   const totalAlerts = CASCADE_CONFLICTS.length + (missingFreigabe.length > 0 ? 1 : 0);
 
@@ -202,96 +202,30 @@ export function ProduktionsleitungView() {
         </div>
       )}
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-4 gap-4 px-8 mb-7 shrink-0">
-        {/* Featured: Im Druck */}
-        <div
-          className="rounded-2xl p-5 flex flex-col justify-between"
-          style={{ background: "oklch(0.16 0.008 255)", minHeight: 120 }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold" style={{ color: "oklch(0.60 0.006 255)" }}>
-              Im Druck
+      {/* ── KPI Strip (compact, secondary) ── */}
+      <div
+        className="mx-8 mb-6 rounded-2xl border flex items-center divide-x divide-border shrink-0"
+        style={{ background: "var(--card)" }}
+      >
+        {[
+          { value: inProduction,          label: "Im Druck",        warn: false,                        icon: <Circle className="h-3 w-3 fill-current" style={{ color: "oklch(0.52 0.20 145)" }} /> },
+          { value: activeJobs.length,     label: "Aktiv",           warn: false,                        icon: <CheckCircle2 className="h-3 w-3 text-muted-foreground" /> },
+          { value: blockedCount,          label: "Blockiert",       warn: blockedCount > 0,             icon: <Zap className="h-3 w-3" style={{ color: blockedCount > 0 ? "oklch(0.50 0.22 25)" : "var(--muted-foreground)" }} /> },
+          { value: missingFreigabe.length,label: "Freigabe fehlt",  warn: missingFreigabe.length > 0,  icon: <AlertTriangle className="h-3 w-3" style={{ color: missingFreigabe.length > 0 ? "oklch(0.52 0.17 85)" : "var(--muted-foreground)" }} /> },
+        ].map((kpi) => (
+          <div key={kpi.label} className="flex items-center gap-2.5 px-5 py-3 flex-1">
+            {kpi.icon}
+            <span
+              className="text-xl font-black number-display leading-none"
+              style={{ color: kpi.warn ? (kpi.label === "Blockiert" ? "oklch(0.50 0.22 25)" : "oklch(0.45 0.16 85)") : "oklch(0.16 0.008 255)" }}
+            >
+              {kpi.value}
             </span>
-            <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "oklch(0.24 0.008 255)" }}>
-              <Circle className="h-3.5 w-3.5 fill-current" style={{ color: "oklch(0.52 0.20 145)" }} />
-            </div>
-          </div>
-          <div className="text-5xl font-black number-display leading-none" style={{ color: "white" }}>
-            {inProduction}
-          </div>
-          <div className="text-[10px] mt-3" style={{ color: "oklch(0.55 0.006 255)" }}>
-            Maschinen laufen gerade
-          </div>
-        </div>
-
-        {/* Aktiv */}
-        <div className="rounded-2xl p-5 border border-border bg-card flex flex-col justify-between" style={{ minHeight: 120 }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">Aktive Aufträge</span>
-            <div className="h-7 w-7 rounded-lg flex items-center justify-center bg-muted">
-              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
-            </div>
-          </div>
-          <div className="text-5xl font-black number-display leading-none">{activeJobs.length}</div>
-          <div className="text-[10px] text-muted-foreground mt-3">{doneToday} heute abgeschlossen</div>
-        </div>
-
-        {/* Blockiert */}
-        <div
-          className="rounded-2xl p-5 flex flex-col justify-between border"
-          style={{
-            minHeight: 120,
-            background: blockedCount > 0 ? "oklch(0.98 0.015 25)" : "var(--card)",
-            borderColor: blockedCount > 0 ? "oklch(0.88 0.08 25)" : "var(--border)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold"
-              style={{ color: blockedCount > 0 ? "oklch(0.50 0.22 25)" : "var(--muted-foreground)" }}>
-              Blockiert
+            <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-muted-foreground leading-tight">
+              {kpi.label}
             </span>
-            <div className="h-7 w-7 rounded-lg flex items-center justify-center"
-              style={{ background: blockedCount > 0 ? "oklch(0.93 0.10 25 / 0.25)" : "var(--muted)" }}>
-              <Zap className="h-3.5 w-3.5" style={{ color: blockedCount > 0 ? "oklch(0.50 0.22 25)" : "var(--muted-foreground)" }} />
-            </div>
           </div>
-          <div className="text-5xl font-black number-display leading-none"
-            style={{ color: blockedCount > 0 ? "oklch(0.50 0.22 25)" : "oklch(0.16 0.008 255)" }}>
-            {blockedCount}
-          </div>
-          <div className="text-[10px] mt-3" style={{ color: blockedCount > 0 ? "oklch(0.55 0.20 25)" : "var(--muted-foreground)" }}>
-            {blockedCount > 0 ? "Sofortiger Handlungsbedarf" : "Alles läuft planmäßig"}
-          </div>
-        </div>
-
-        {/* Freigabe fehlt */}
-        <div
-          className="rounded-2xl p-5 flex flex-col justify-between border"
-          style={{
-            minHeight: 120,
-            background: missingFreigabe.length > 0 ? "oklch(0.98 0.04 85 / 0.5)" : "var(--card)",
-            borderColor: missingFreigabe.length > 0 ? "oklch(0.88 0.10 85)" : "var(--border)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold"
-              style={{ color: missingFreigabe.length > 0 ? "oklch(0.52 0.17 85)" : "var(--muted-foreground)" }}>
-              Freigabe fehlt
-            </span>
-            <div className="h-7 w-7 rounded-lg flex items-center justify-center"
-              style={{ background: missingFreigabe.length > 0 ? "oklch(0.93 0.12 85 / 0.25)" : "var(--muted)" }}>
-              <AlertTriangle className="h-3.5 w-3.5" style={{ color: missingFreigabe.length > 0 ? "oklch(0.52 0.17 85)" : "var(--muted-foreground)" }} />
-            </div>
-          </div>
-          <div className="text-5xl font-black number-display leading-none"
-            style={{ color: missingFreigabe.length > 0 ? "oklch(0.45 0.16 85)" : "oklch(0.16 0.008 255)" }}>
-            {missingFreigabe.length}
-          </div>
-          <div className="text-[10px] mt-3" style={{ color: missingFreigabe.length > 0 ? "oklch(0.50 0.15 85)" : "var(--muted-foreground)" }}>
-            {missingFreigabe.length > 0 ? "Kunden kontaktieren" : "Alle Freigaben erteilt"}
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* ── Body: 2-col grid ── */}
