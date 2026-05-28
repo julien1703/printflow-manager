@@ -5,11 +5,10 @@ import {
 } from "@/lib/mock-data";
 import { ZeitPill } from "../zeit-pill";
 import { KISuggestionsPanel } from "@/components/plantafel/ki-suggestions";
-import { JobBadges } from "@/components/plantafel/job-badges";
 import { AuftragDrawer } from "@/components/plantafel/auftrag-drawer";
 import {
-  AlertTriangle, Zap, Clock, X, TrendingDown, ArrowRight, Activity, Printer,
-  AlertOctagon, FileWarning, ChevronDown, ChevronUp,
+  AlertTriangle, Zap, Clock, TrendingDown, Activity, Printer,
+  AlertOctagon, FileWarning, ChevronDown, ChevronUp, ArrowRight,
 } from "lucide-react";
 
 const ALL_MACHINES: Machine[] = ["CD", "RZK", "SM5", "Digi"];
@@ -45,12 +44,18 @@ function getNextJob(machine: Machine, currentId?: string): Job | undefined {
   ).sort(sortByDelivery)[0];
 }
 
+const MACHINE_DISPLAY: Record<Machine, string> = {
+  CD: "CD", RZK: "RZK", SM5: "SM528", Digi: "Digi",
+};
+
 export function ProduktionsleitungView() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(
     () => new Set(JOBS.filter((j) => j.festgepinnt).map((j) => j.id))
   );
+  const [prioritaetOverrides, setPrioritaetOverrides] = useState<Record<string, Job["prioritaet"]>>({});
+  const [notizOverrides, setNotizOverrides] = useState<Record<string, string>>({});
 
   function togglePinned(jobId: string) {
     setPinnedIds((prev) => {
@@ -61,20 +66,14 @@ export function ProduktionsleitungView() {
     });
   }
 
-  const [prioritaetOverrides, setPrioritaetOverrides] = useState<Record<string, Job["prioritaet"]>>({});
-  const [notizOverrides, setNotizOverrides] = useState<Record<string, string>>({});
-
   const activeJobs = JOBS.filter(
     (j) => j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
   ).sort(sortByDelivery);
 
   const inProduction = JOBS.filter((j) => j.orderStatus === "In Produktion").length;
   const blockedCount = JOBS.filter((j) => j.orderStatus === "Blockiert" || j.cascadeConflict).length;
-
   const missingFreigabe = JOBS.filter(
-    (j) => j.druckfreigabe === "Fehlt" &&
-      j.orderStatus !== "Abgeschlossen" &&
-      j.orderStatus !== "Storniert"
+    (j) => j.druckfreigabe === "Fehlt" && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
   );
 
   function toggleAlert(id: string) {
@@ -86,209 +85,117 @@ export function ProduktionsleitungView() {
     });
   }
 
-  const kpiItems = [
-    {
-      count: activeJobs.length,
-      label: "Aufträge aktiv",
-      Icon: Activity,
-      accent: false,
-      color: "oklch(0.55 0.008 255)",
-      borderCls: "",
-    },
-    {
-      count: inProduction,
-      label: "Im Druck",
-      Icon: Printer,
-      accent: false,
-      color: "oklch(0.40 0.18 145)",
-      borderCls: "",
-    },
-    {
-      count: blockedCount,
-      label: "Blockiert",
-      Icon: AlertOctagon,
-      accent: blockedCount > 0,
-      color: "oklch(0.50 0.22 25)",
-      borderCls: "border-l-destructive",
-    },
-    {
-      count: missingFreigabe.length,
-      label: "Freigabe fehlt",
-      Icon: FileWarning,
-      accent: missingFreigabe.length > 0,
-      color: "oklch(0.55 0.17 85)",
-      borderCls: "border-l-[oklch(0.55_0.17_85)]",
-    },
+  const kpis = [
+    { count: activeJobs.length, label: "Aktiv",        Icon: Activity,     warn: false },
+    { count: inProduction,       label: "Im Druck",     Icon: Printer,      warn: false },
+    { count: blockedCount,       label: "Blockiert",    Icon: AlertOctagon, warn: blockedCount > 0 },
+    { count: missingFreigabe.length, label: "Freigabe fehlt", Icon: FileWarning, warn: missingFreigabe.length > 0 },
   ];
 
   return (
-    <div className="relative">
-      <div className="fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
+    <div className="relative fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
 
-        {/* ── Header — clean, no gantt ── */}
-        <div className="px-8 pt-8 pb-6 border-b border-border">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
+      {/* ── Page Header ── */}
+      <div className="px-8 pt-7 pb-5 border-b border-border flex items-end justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-1">
             Produktionsleitung · G. Maisch
           </div>
-          <h1 className="editorial-header leading-none" style={{ fontSize: "clamp(2.8rem, 5vw, 4rem)" }}>
-            Montag
-          </h1>
-          <p className="text-sm text-muted-foreground font-mono mt-1">20. Mai 2026 · KW 20</p>
+          <h1 className="text-3xl font-bold leading-none tracking-tight">Dashboard</h1>
         </div>
+        <span className="text-[11px] font-mono text-muted-foreground pb-0.5">
+          Mi. 20. Mai 2026 · KW 21
+        </span>
+      </div>
 
-        {/* ── KPI Strip ── */}
-        <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
-          {kpiItems.map((item, i) => (
+      {/* ── KPI Row ── */}
+      <div className="grid grid-cols-4 divide-x divide-border border-b border-border">
+        {kpis.map((kpi) => (
+          <div key={kpi.label} className="px-6 py-4 flex items-center gap-4">
             <div
-              key={i}
-              className={[
-                "px-7 py-6",
-                item.accent ? `border-l-4 ${item.borderCls}` : "",
-              ].filter(Boolean).join(" ")}
+              className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                background: kpi.warn
+                  ? "oklch(0.93 0.10 25 / 0.15)"
+                  : "oklch(0.95 0.003 80)",
+              }}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div
-                  className="h-9 w-9 rounded-xl flex items-center justify-center"
-                  style={{
-                    backgroundColor:
-                      item.accent && item.count > 0
-                        ? `color-mix(in oklab, ${item.color} 15%, white)`
-                        : "var(--muted)",
-                  }}
-                >
-                  <item.Icon
-                    className="h-4 w-4"
-                    style={{
-                      color:
-                        item.accent && item.count > 0
-                          ? item.color
-                          : "var(--muted-foreground)",
-                    }}
-                  />
-                </div>
-              </div>
+              <kpi.Icon
+                className="h-4 w-4"
+                style={{ color: kpi.warn ? "oklch(0.50 0.22 25)" : "oklch(0.55 0.006 255)" }}
+              />
+            </div>
+            <div>
               <div
-                className="text-4xl font-black number-display leading-none mb-1.5"
-                style={{
-                  color:
-                    item.accent && item.count > 0
-                      ? item.color
-                      : "var(--foreground)",
-                }}
+                className="text-2xl font-black number-display leading-none"
+                style={{ color: kpi.warn ? "oklch(0.50 0.22 25)" : "oklch(0.16 0.008 255)" }}
               >
-                {item.count}
+                {kpi.count}
               </div>
-              <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">
-                {item.label}
+              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-semibold mt-0.5">
+                {kpi.label}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        <div className="px-8 py-5 space-y-5">
+      <div className="px-8 py-6 space-y-6">
 
-          {/* ── Alerts ── */}
+        {/* ── Alerts ── */}
+        {(CASCADE_CONFLICTS.length > 0 || missingFreigabe.length > 0) && (
           <div className="space-y-2">
             {CASCADE_CONFLICTS.map((cc) => {
               const isExpanded = expandedAlerts.has(cc.triggerId);
               return (
                 <div
                   key={cc.triggerId}
-                  className="rounded-xl border cursor-pointer"
+                  className="rounded-xl border cursor-pointer overflow-hidden"
                   style={{
-                    backgroundColor: "oklch(0.65 0.22 25 / 0.05)",
-                    borderColor: "oklch(0.65 0.22 25 / 0.22)",
+                    background: "oklch(0.98 0.015 25)",
+                    borderColor: "oklch(0.88 0.08 25)",
                   }}
                   onClick={() => toggleAlert(cc.triggerId)}
                 >
-                  {/* Collapsed header row */}
-                  <div className="flex items-start gap-3 px-4 py-3 text-sm">
-                    <Zap
-                      className="h-3.5 w-3.5 mt-0.5 shrink-0"
-                      style={{ color: "oklch(0.50 0.22 25)" }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="font-semibold" style={{ color: "oklch(0.38 0.20 25)" }}>
-                        Kaskaden-Konflikt: {cc.triggerCustomer}
-                      </span>
-                      <span className="mx-2 text-muted-foreground">·</span>
-                      <span className="text-muted-foreground">{cc.reason}</span>
-                      {!isExpanded && (
-                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          {cc.affected.map((a) => (
-                            <span
-                              key={a.role}
-                              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                              style={{
-                                backgroundColor:
-                                  a.severity === "high"
-                                    ? "oklch(0.65 0.22 25 / 0.10)"
-                                    : "oklch(0.85 0.17 85 / 0.12)",
-                                color:
-                                  a.severity === "high"
-                                    ? "oklch(0.40 0.20 25)"
-                                    : "oklch(0.42 0.16 85)",
-                              }}
-                            >
-                              {a.actionRequired && <TrendingDown className="h-3 w-3" />}
-                              {a.role
-                                .replace("buchbinderei", "Buchbinderei")
-                                .replace("logistik", "Logistik")
-                                .replace("projektmanager", "PM")}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                  <div className="flex items-center gap-3 px-4 py-3 text-sm">
+                    <Zap className="h-3.5 w-3.5 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
+                    <span className="font-semibold" style={{ color: "oklch(0.38 0.20 25)" }}>
+                      Kaskaden-Konflikt:
+                    </span>
+                    <span className="font-medium text-foreground">{cc.triggerCustomer}</span>
+                    <span className="text-muted-foreground text-xs flex-1 truncate">· {cc.reason}</span>
+                    <div className="flex gap-1 shrink-0">
+                      {cc.affected.map((a) => (
+                        <span
+                          key={a.role}
+                          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium"
+                          style={{
+                            background: a.severity === "high" ? "oklch(0.88 0.10 25 / 0.3)" : "oklch(0.90 0.08 85 / 0.3)",
+                            color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)",
+                          }}
+                        >
+                          {a.actionRequired && <TrendingDown className="h-2.5 w-2.5" />}
+                          {a.role.replace("buchbinderei","BB").replace("logistik","Log.").replace("projektmanager","PM")}
+                        </span>
+                      ))}
                     </div>
-                    <div className="shrink-0 text-muted-foreground mt-0.5">
-                      {isExpanded
-                        ? <ChevronUp className="h-3.5 w-3.5" />
-                        : <ChevronDown className="h-3.5 w-3.5" />
-                      }
-                    </div>
+                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                   </div>
-
-                  {/* Expanded detail */}
                   {isExpanded && (
-                    <div className="px-4 pb-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex flex-col gap-2 mb-4">
+                    <div className="px-4 pb-4 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
+                      <div className="space-y-1.5 mt-3 mb-3">
                         {cc.affected.map((a) => (
-                          <div key={a.role} className="flex items-start gap-3">
-                            <div
-                              className="mt-1 h-2 w-2 rounded-full shrink-0"
-                              style={{
-                                backgroundColor:
-                                  a.severity === "high"
-                                    ? "oklch(0.50 0.22 25)"
-                                    : a.severity === "medium"
-                                    ? "oklch(0.55 0.17 85)"
-                                    : "oklch(0.60 0.04 255)",
-                              }}
-                            />
-                            <div>
-                              <span
-                                className="text-[11px] font-semibold"
-                                style={{
-                                  color:
-                                    a.severity === "high"
-                                      ? "oklch(0.40 0.20 25)"
-                                      : "oklch(0.42 0.16 85)",
-                                }}
-                              >
-                                {a.role
-                                  .replace("buchbinderei", "Buchbinderei")
-                                  .replace("logistik", "Logistik")
-                                  .replace("projektmanager", "Projektmanager")}
-                              </span>
-                              <span className="mx-1.5 text-muted-foreground text-[11px]">·</span>
-                              <span className="text-[11px] text-muted-foreground">{a.impact}</span>
-                            </div>
+                          <div key={a.role} className="flex items-start gap-2 text-xs">
+                            <div className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0"
+                              style={{ background: a.severity === "high" ? "oklch(0.50 0.22 25)" : "oklch(0.55 0.17 85)" }} />
+                            <span className="font-semibold" style={{ color: a.severity === "high" ? "oklch(0.40 0.20 25)" : "oklch(0.42 0.16 85)" }}>
+                              {a.role.replace("buchbinderei","Buchbinderei").replace("logistik","Logistik").replace("projektmanager","Projektmanager")}
+                            </span>
+                            <span className="text-muted-foreground">· {a.impact}</span>
                           </div>
                         ))}
                       </div>
-                      <div className="flex justify-end">
-                        <KISuggestionsPanel role="produktionsleitung" context={cc.reason} />
-                      </div>
+                      <KISuggestionsPanel role="produktionsleitung" context={cc.reason} />
                     </div>
                   )}
                 </div>
@@ -298,151 +205,225 @@ export function ProduktionsleitungView() {
             {missingFreigabe.length > 0 && (
               <div
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm border"
-                style={{
-                  backgroundColor: "oklch(0.85 0.17 85 / 0.08)",
-                  borderColor: "oklch(0.78 0.18 85 / 0.25)",
-                }}
+                style={{ background: "oklch(0.98 0.04 85 / 0.5)", borderColor: "oklch(0.88 0.10 85)" }}
               >
-                <AlertTriangle
-                  className="h-3.5 w-3.5 shrink-0"
-                  style={{ color: "oklch(0.52 0.17 85)" }}
-                />
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" style={{ color: "oklch(0.52 0.17 85)" }} />
                 <span className="font-semibold" style={{ color: "oklch(0.40 0.16 85)" }}>
-                  {missingFreigabe.length}× Druckfreigabe fehlt:
+                  {missingFreigabe.length}× Druckfreigabe fehlt
                 </span>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                   {missingFreigabe.map((j) => j.customer).join(" · ")}
                 </span>
               </div>
             )}
           </div>
+        )}
 
-          {/* ── Machine Cards — 4 columns horizontal ── */}
-          <div className="grid grid-cols-4 gap-4">
+        {/* ── Maschinen ── */}
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-3">
+            Maschinen
+          </div>
+          <div className="grid grid-cols-4 gap-3">
             {ALL_MACHINES.map((machine) => {
               const currentJob = getCurrentJob(machine);
               const nextJob = getNextJob(machine, currentJob?.id);
               const color = MACHINE_META[machine].color;
-              const status: "Läuft" | "Bereit" | "Blockiert" = !currentJob
-                ? "Bereit"
-                : currentJob.cascadeConflict || currentJob.orderStatus === "Blockiert"
-                ? "Blockiert"
-                : currentJob.orderStatus === "In Produktion"
-                ? "Läuft"
-                : "Bereit";
+              const isBlocked = currentJob?.cascadeConflict || currentJob?.orderStatus === "Blockiert";
+              const isRunning = currentJob?.orderStatus === "In Produktion";
+              const livePrint = LIVE_PRINT.find((lp) => lp.machine === machine);
+
               return (
-                <MachineKachel
+                <div
                   key={machine}
-                  machine={machine}
-                  currentJob={currentJob}
-                  nextJob={nextJob}
-                  status={status}
-                  color={color}
-                  onClickCurrent={currentJob ? () => setSelectedJob(currentJob) : undefined}
-                  onClickNext={nextJob ? () => setSelectedJob(nextJob) : undefined}
-                />
+                  className="rounded-2xl border overflow-hidden flex flex-col"
+                  style={{
+                    background: isBlocked ? "oklch(0.98 0.015 25)" : "var(--card)",
+                    borderColor: isBlocked ? "oklch(0.88 0.08 25)" : "var(--border)",
+                  }}
+                >
+                  {/* Header */}
+                  <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-border/50">
+                    <div>
+                      <div className="text-base font-black" style={{ color }}>{MACHINE_DISPLAY[machine]}</div>
+                      <div
+                        className="text-[9px] uppercase tracking-[0.12em] font-semibold mt-0.5"
+                        style={{
+                          color: isBlocked ? "oklch(0.50 0.22 25)" : isRunning ? "oklch(0.45 0.18 145)" : "var(--muted-foreground)",
+                        }}
+                      >
+                        {isBlocked ? "Blockiert" : isRunning ? "Läuft" : "Bereit"}
+                      </div>
+                    </div>
+                    <div
+                      className={`h-2.5 w-2.5 rounded-full ${isRunning ? "pulse-chip" : ""}`}
+                      style={{
+                        background: isBlocked ? "oklch(0.55 0.22 25)" : isRunning ? "oklch(0.52 0.20 145)" : "oklch(0.82 0.003 255)",
+                      }}
+                    />
+                  </div>
+
+                  {/* Aktueller Auftrag */}
+                  <div className="p-3 flex-1">
+                    {currentJob ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedJob(currentJob)}
+                        className="w-full text-left rounded-xl p-3 transition hover:brightness-[0.97]"
+                        style={{
+                          background: `color-mix(in oklab, ${color} 6%, var(--background))`,
+                          border: `1px solid color-mix(in oklab, ${color} 16%, var(--border))`,
+                        }}
+                      >
+                        <div className="text-[9px] uppercase tracking-[0.12em] font-semibold mb-1" style={{ color }}>
+                          Jetzt
+                        </div>
+                        <div className="text-sm font-bold leading-snug truncate mb-1">
+                          {currentJob.customer}
+                        </div>
+                        {isRunning && livePrint && (
+                          <div className="mt-2 mb-1">
+                            <div className="h-1 rounded-full bg-border overflow-hidden">
+                              <div
+                                className="h-full rounded-full shimmer-bar"
+                                style={{ width: `${livePrint.progress}%`, background: color }}
+                              />
+                            </div>
+                            <div className="text-[9px] text-muted-foreground font-mono mt-1">
+                              ~{livePrint.finishInMin} min
+                            </div>
+                          </div>
+                        )}
+                        <div className="text-[9px] font-mono text-muted-foreground mt-1">
+                          {currentJob.delivery}
+                        </div>
+                      </button>
+                    ) : (
+                      <div className="rounded-xl p-3 border border-dashed border-border text-xs text-muted-foreground">
+                        Kein Auftrag
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Nächster Auftrag */}
+                  {nextJob && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJob(nextJob)}
+                      className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border bg-muted/20 hover:bg-muted/40 transition text-left"
+                    >
+                      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="text-[10px] font-semibold truncate flex-1">{nextJob.customer}</span>
+                      <span className="text-[9px] font-mono text-muted-foreground shrink-0">{nextJob.delivery}</span>
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
+        </div>
 
-          {/* ── Active Jobs List — card-based ── */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
-                Alle aktiven Aufträge
-              </span>
-              <span className="text-[10px] font-bold tabular-nums text-muted-foreground">
-                {activeJobs.length}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              {activeJobs.map((j) => {
-                const color = MACHINE_META[j.machine].color;
-                const phaseIdx = PHASES.indexOf(j.phase);
-                return (
-                  <button
-                    key={j.id}
-                    onClick={() => setSelectedJob(j)}
-                    className="card-lift w-full text-left rounded-xl border bg-card p-4 flex items-center gap-4"
-                    style={{
-                      borderLeftWidth: 4,
-                      borderLeftColor: color,
-                      borderColor: j.cascadeConflict
-                        ? "oklch(0.65 0.22 25 / 0.22)"
-                        : "var(--border)",
-                      backgroundColor: j.cascadeConflict
-                        ? "oklch(0.65 0.22 25 / 0.03)"
-                        : "var(--card)",
-                    }}
-                  >
-                    {/* Machine label */}
-                    <div
-                      className="shrink-0 text-[10px] font-black uppercase w-8 text-center"
-                      style={{ color }}
-                    >
-                      {j.machine}
-                    </div>
-
-                    {/* Customer + job ID */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-semibold truncate">{j.customer}</span>
-                        {j.cascadeConflict && (
-                          <span className="pulse-chip inline-flex items-center gap-0.5 text-[10px] font-semibold text-destructive shrink-0">
-                            <Zap className="h-3 w-3" />
-                            Konflikt
-                          </span>
-                        )}
-                        {j.isNew && (
-                          <span
-                            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0"
-                            style={{
-                              backgroundColor: "oklch(0.52 0.20 145 / 0.15)",
-                              color: "oklch(0.35 0.18 145)",
-                              border: "1px solid oklch(0.60 0.18 145 / 0.40)",
-                            }}
-                          >
-                            NEU
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground font-mono">{j.id}</span>
-                    </div>
-
-                    {/* Phase progress dots */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {PHASES.map((_, i) => (
-                        <div
-                          key={i}
-                          className="h-1.5 w-5 rounded-full"
-                          style={{
-                            backgroundColor:
-                              i < phaseIdx
-                                ? "oklch(0.72 0.18 145)"
-                                : i === phaseIdx
-                                ? j.cascadeConflict ? "oklch(0.50 0.22 25)" : color
-                                : "var(--border)",
-                          }}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Delivery date */}
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-mono shrink-0">
-                      <Clock className="h-3 w-3" />
-                      {j.delivery}
-                    </div>
-
-                    <ZeitPill status={j.status} />
-                  </button>
-                );
-              })}
-            </div>
+        {/* ── Alle aktiven Aufträge ── */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
+              Alle aktiven Aufträge
+            </span>
+            <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
+              {activeJobs.length}
+            </span>
           </div>
 
+          {/* Table header */}
+          <div className="grid text-[9px] uppercase tracking-[0.12em] font-semibold text-muted-foreground px-4 mb-1.5"
+            style={{ gridTemplateColumns: "2rem 1fr 7rem 7rem 5rem 5rem" }}>
+            <span />
+            <span>Kunde</span>
+            <span>Phase</span>
+            <span>Status</span>
+            <span>Termin</span>
+            <span />
+          </div>
+
+          <div className="space-y-1">
+            {activeJobs.map((j) => {
+              const color = MACHINE_META[j.machine].color;
+              const phaseIdx = PHASES.indexOf(j.phase);
+              return (
+                <button
+                  key={j.id}
+                  onClick={() => setSelectedJob(j)}
+                  className="w-full text-left rounded-xl border bg-card px-4 py-3 grid items-center gap-4 hover:bg-muted/30 transition-colors"
+                  style={{
+                    gridTemplateColumns: "2rem 1fr 7rem 7rem 5rem 5rem",
+                    borderLeftWidth: 3,
+                    borderLeftColor: color,
+                    borderColor: j.cascadeConflict ? "oklch(0.88 0.08 25)" : "var(--border)",
+                    background: j.cascadeConflict ? "oklch(0.98 0.015 25)" : undefined,
+                  }}
+                >
+                  {/* Machine */}
+                  <span className="text-[10px] font-black" style={{ color }}>
+                    {MACHINE_DISPLAY[j.machine]}
+                  </span>
+
+                  {/* Kunde + Badges */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold truncate">{j.customer}</span>
+                      {j.cascadeConflict && (
+                        <Zap className="h-3 w-3 shrink-0" style={{ color: "oklch(0.50 0.22 25)" }} />
+                      )}
+                      {j.isNew && (
+                        <span className="text-[8px] font-bold rounded-full px-1.5 py-0.5 shrink-0"
+                          style={{ background: "oklch(0.92 0.08 145 / 0.3)", color: "oklch(0.35 0.18 145)" }}>
+                          NEU
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[9px] text-muted-foreground">{j.product}</span>
+                  </div>
+
+                  {/* Phase dots */}
+                  <div className="flex items-center gap-1">
+                    {PHASES.map((_, i) => (
+                      <div key={i} className="h-1.5 flex-1 rounded-full"
+                        style={{
+                          background: i < phaseIdx ? "oklch(0.72 0.18 145)"
+                            : i === phaseIdx ? (j.cascadeConflict ? "oklch(0.50 0.22 25)" : color)
+                            : "var(--border)",
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* ZeitStatus */}
+                  <div><ZeitPill status={j.status} /></div>
+
+                  {/* Termin */}
+                  <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {j.delivery}
+                  </div>
+
+                  {/* Freigabe */}
+                  <div>
+                    {j.druckfreigabe === "Fehlt" && (
+                      <span className="text-[8px] font-semibold rounded-md px-1.5 py-0.5"
+                        style={{ background: "oklch(0.94 0.10 85 / 0.35)", color: "oklch(0.45 0.16 85)" }}>
+                        Freigabe fehlt
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
       </div>
 
+      {/* ── Drawer ── */}
       {selectedJob && (
         <AuftragDrawer
           job={{
@@ -464,153 +445,3 @@ export function ProduktionsleitungView() {
     </div>
   );
 }
-
-function MachineKachel({
-  machine, currentJob, nextJob, status, color, onClickCurrent, onClickNext,
-}: {
-  machine: Machine;
-  currentJob: Job | undefined;
-  nextJob: Job | undefined;
-  status: "Läuft" | "Bereit" | "Blockiert";
-  color: string;
-  onClickCurrent?: () => void;
-  onClickNext?: () => void;
-}) {
-  const isBlocked = status === "Blockiert";
-  const isRunning = status === "Läuft";
-  const livePrint = LIVE_PRINT.find((lp) => lp.machine === machine);
-
-  return (
-    <div
-      className="rounded-2xl overflow-hidden border flex flex-col"
-      style={{
-        borderColor: isBlocked ? "oklch(0.65 0.22 25 / 0.28)" : "var(--border)",
-        backgroundColor: isBlocked ? "oklch(0.65 0.22 25 / 0.03)" : "var(--card)",
-        borderLeftWidth: 4,
-        borderLeftColor: color,
-      }}
-    >
-      {/* Machine header */}
-      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
-        <div>
-          <div className="text-2xl font-black leading-none" style={{ color }}>
-            {machine}
-          </div>
-          <div
-            className="text-[10px] uppercase tracking-[0.12em] font-semibold mt-0.5"
-            style={{
-              color: isBlocked
-                ? "oklch(0.50 0.22 25)"
-                : isRunning
-                ? "oklch(0.45 0.18 145)"
-                : "var(--muted-foreground)",
-            }}
-          >
-            {status}
-          </div>
-        </div>
-        {/* Status glow dot */}
-        <div
-          className={`h-3 w-3 rounded-full${isRunning ? " pulse-chip" : ""}`}
-          style={{
-            backgroundColor: isBlocked
-              ? "oklch(0.55 0.22 25)"
-              : isRunning
-              ? "oklch(0.52 0.20 145)"
-              : "oklch(0.72 0.04 240)",
-            boxShadow: isRunning
-              ? "0 0 0 4px oklch(0.52 0.20 145 / 0.20)"
-              : isBlocked
-              ? "0 0 0 4px oklch(0.55 0.22 25 / 0.18)"
-              : "none",
-          }}
-        />
-      </div>
-
-      {/* Current job */}
-      <div className="flex-1 px-3 pb-3">
-        {currentJob ? (
-          <button
-            type="button"
-            onClick={onClickCurrent}
-            className="card-lift w-full text-left rounded-xl p-3 transition"
-            style={{
-              backgroundColor: isBlocked
-                ? "oklch(0.65 0.22 25 / 0.08)"
-                : `color-mix(in oklab, ${color} 8%, var(--background))`,
-              border: `1px solid ${
-                isBlocked
-                  ? "oklch(0.65 0.22 25 / 0.20)"
-                  : `color-mix(in oklab, ${color} 18%, var(--border))`
-              }`,
-            }}
-          >
-            <div
-              className="text-[9px] uppercase tracking-[0.14em] font-semibold mb-1"
-              style={{ color: isBlocked ? "oklch(0.50 0.22 25)" : color }}
-            >
-              Jetzt
-            </div>
-            <div className="text-sm font-bold leading-tight mb-2">{currentJob.customer}</div>
-
-            {/* Progress bar for running jobs */}
-            {isRunning && livePrint && (
-              <>
-                <div className="h-1.5 rounded-full bg-border overflow-hidden mb-1">
-                  <div
-                    className="h-full rounded-full shimmer-bar"
-                    style={{ width: `${livePrint.progress}%`, backgroundColor: color }}
-                  />
-                </div>
-                <div className="text-[9px] text-muted-foreground font-mono">
-                  ~{livePrint.finishInMin} min
-                </div>
-              </>
-            )}
-
-            <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-              <span
-                className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
-                style={{
-                  backgroundColor: isBlocked
-                    ? "oklch(0.65 0.22 25 / 0.15)"
-                    : `color-mix(in oklab, ${color} 15%, white)`,
-                  color: isBlocked ? "oklch(0.40 0.20 25)" : color,
-                }}
-              >
-                {currentJob.phase}
-              </span>
-              <span className="text-[9px] text-muted-foreground font-mono">{currentJob.delivery}</span>
-            </div>
-          </button>
-        ) : (
-          <div className="rounded-xl p-3 border border-dashed border-border">
-            <div className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground mb-1">
-              Jetzt
-            </div>
-            <div className="text-xs text-muted-foreground">Kein Auftrag</div>
-          </div>
-        )}
-      </div>
-
-      {/* Next job */}
-      {nextJob && (
-        <button
-          type="button"
-          onClick={onClickNext}
-          className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border bg-muted/30 hover:bg-muted/50 transition text-left"
-        >
-          <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[8px] uppercase tracking-wide font-semibold text-muted-foreground">
-              Nächster
-            </div>
-            <div className="text-[11px] font-semibold truncate">{nextJob.customer}</div>
-          </div>
-          <div className="text-[9px] font-mono text-muted-foreground shrink-0">{nextJob.delivery}</div>
-        </button>
-      )}
-    </div>
-  );
-}
-
