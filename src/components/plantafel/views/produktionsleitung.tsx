@@ -228,10 +228,119 @@ export function ProduktionsleitungView() {
         ))}
       </div>
 
-      {/* ── Body: 2-col grid ── */}
-      <div className="px-8 pb-8 grid grid-cols-[1fr_320px] gap-6 flex-1 min-h-0">
+      {/* ── Body: single column ── */}
+      <div className="px-8 pb-8 flex flex-col gap-6 flex-1 min-h-0">
 
-        {/* ── Left: Alle Aufträge ── */}
+        {/* ── Maschinen (4 columns) ── */}
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-3">
+            Maschinen
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {ALL_MACHINES.map((machine) => {
+              const currentJob = getCurrentJob(machine);
+              const nextJob = getNextJob(machine, currentJob?.id);
+              const color = MACHINE_META[machine].color;
+              const isBlocked = currentJob?.cascadeConflict || currentJob?.orderStatus === "Blockiert";
+              const isRunning = currentJob?.orderStatus === "In Produktion";
+              const livePrint = LIVE_PRINT.find((lp) => lp.machine === machine);
+              const jobCount = JOBS.filter(
+                (j) => j.machine === machine && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
+              ).length;
+
+              return (
+                <div
+                  key={machine}
+                  className="rounded-2xl border overflow-hidden"
+                  style={{
+                    background: isBlocked ? "oklch(0.98 0.015 25)" : "var(--card)",
+                    borderColor: isBlocked ? "oklch(0.88 0.08 25)" : "var(--border)",
+                  }}
+                >
+                  {/* Machine header */}
+                  <div className="px-4 pt-4 pb-3 flex items-center gap-3">
+                    <div
+                      className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-black"
+                      style={{ background: `color-mix(in oklab, ${color} 12%, var(--background))`, color }}
+                    >
+                      {MACHINE_DISPLAY[machine].slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-sm" style={{ color }}>{MACHINE_DISPLAY[machine]}</span>
+                        <span
+                          className={`h-2 w-2 rounded-full shrink-0 ${isRunning ? "pulse-chip" : ""}`}
+                          style={{
+                            background: isBlocked ? "oklch(0.55 0.22 25)" : isRunning ? "oklch(0.52 0.20 145)" : "oklch(0.82 0.003 255)",
+                          }}
+                        />
+                        <span className="text-[9px] font-semibold uppercase tracking-widest"
+                          style={{ color: isBlocked ? "oklch(0.50 0.22 25)" : isRunning ? "oklch(0.45 0.18 145)" : "var(--muted-foreground)" }}>
+                          {isBlocked ? "Blockiert" : isRunning ? "Läuft" : "Bereit"}
+                        </span>
+                        <span className="ml-auto text-[9px] font-mono text-muted-foreground">{jobCount}</span>
+                      </div>
+                      <div className="mt-1.5">
+                        <MachineUtilBar machine={machine} color={color} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Current job */}
+                  {currentJob ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJob(currentJob)}
+                      className="w-full text-left mx-3 mb-2 rounded-xl p-3 transition hover:brightness-[0.97] border"
+                      style={{
+                        background: `color-mix(in oklab, ${color} 5%, var(--background))`,
+                        borderColor: `color-mix(in oklab, ${color} 18%, var(--border))`,
+                        width: "calc(100% - 1.5rem)",
+                      }}
+                    >
+                      <div className="text-[8px] uppercase tracking-[0.12em] font-bold mb-1" style={{ color }}>Jetzt</div>
+                      <div className="text-sm font-bold truncate">{currentJob.customer}</div>
+                      {isRunning && livePrint && (
+                        <div className="mt-2">
+                          <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                            <div className="h-full rounded-full shimmer-bar" style={{ width: `${livePrint.progress}%`, background: color }} />
+                          </div>
+                          <div className="flex justify-between text-[9px] font-mono text-muted-foreground mt-1">
+                            <span>{livePrint.progress}%</span>
+                            <span>~{livePrint.finishInMin} min</span>
+                          </div>
+                        </div>
+                      )}
+                      {!isRunning && (
+                        <div className="text-[9px] font-mono text-muted-foreground mt-1">{currentJob.delivery}</div>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="mx-3 mb-2 rounded-xl p-3 border border-dashed border-border text-[10px] text-muted-foreground text-center">
+                      Kein Auftrag geplant
+                    </div>
+                  )}
+
+                  {/* Next job */}
+                  {nextJob && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJob(nextJob)}
+                      className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border hover:bg-muted/30 transition text-left"
+                      style={{ width: "calc(100% - 1.5rem)" }}
+                    >
+                      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <span className="text-[10px] font-semibold truncate flex-1">{nextJob.customer}</span>
+                      <span className="text-[9px] font-mono text-muted-foreground shrink-0">{nextJob.delivery}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── Alle Aufträge ── */}
         <div className="flex flex-col min-h-0">
           <div className="flex items-center justify-between mb-4">
             <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground">
@@ -331,112 +440,6 @@ export function ProduktionsleitungView() {
           </div>
         </div>
 
-        {/* ── Right: Maschinen ── */}
-        <div className="flex flex-col gap-3">
-          <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-muted-foreground mb-1">
-            Maschinen
-          </div>
-          {ALL_MACHINES.map((machine) => {
-            const currentJob = getCurrentJob(machine);
-            const nextJob = getNextJob(machine, currentJob?.id);
-            const color = MACHINE_META[machine].color;
-            const isBlocked = currentJob?.cascadeConflict || currentJob?.orderStatus === "Blockiert";
-            const isRunning = currentJob?.orderStatus === "In Produktion";
-            const livePrint = LIVE_PRINT.find((lp) => lp.machine === machine);
-            const jobCount = JOBS.filter(
-              (j) => j.machine === machine && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
-            ).length;
-
-            return (
-              <div
-                key={machine}
-                className="rounded-2xl border overflow-hidden"
-                style={{
-                  background: isBlocked ? "oklch(0.98 0.015 25)" : "var(--card)",
-                  borderColor: isBlocked ? "oklch(0.88 0.08 25)" : "var(--border)",
-                }}
-              >
-                {/* Machine header */}
-                <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-                  <div
-                    className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-black"
-                    style={{ background: `color-mix(in oklab, ${color} 12%, var(--background))`, color }}
-                  >
-                    {MACHINE_DISPLAY[machine].slice(0, 2)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-sm" style={{ color }}>{MACHINE_DISPLAY[machine]}</span>
-                      <span
-                        className={`h-2 w-2 rounded-full shrink-0 ${isRunning ? "pulse-chip" : ""}`}
-                        style={{
-                          background: isBlocked ? "oklch(0.55 0.22 25)" : isRunning ? "oklch(0.52 0.20 145)" : "oklch(0.82 0.003 255)",
-                        }}
-                      />
-                      <span className="text-[9px] font-semibold uppercase tracking-widest"
-                        style={{ color: isBlocked ? "oklch(0.50 0.22 25)" : isRunning ? "oklch(0.45 0.18 145)" : "var(--muted-foreground)" }}>
-                        {isBlocked ? "Blockiert" : isRunning ? "Läuft" : "Bereit"}
-                      </span>
-                      <span className="ml-auto text-[9px] font-mono text-muted-foreground">{jobCount} Aufträge</span>
-                    </div>
-                    <div className="mt-1.5">
-                      <MachineUtilBar machine={machine} color={color} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Current job */}
-                {currentJob ? (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedJob(currentJob)}
-                    className="w-full text-left mx-3 mb-2 rounded-xl p-3 transition hover:brightness-[0.97] border"
-                    style={{
-                      background: `color-mix(in oklab, ${color} 5%, var(--background))`,
-                      borderColor: `color-mix(in oklab, ${color} 18%, var(--border))`,
-                      width: "calc(100% - 1.5rem)",
-                    }}
-                  >
-                    <div className="text-[8px] uppercase tracking-[0.12em] font-bold mb-1" style={{ color }}>Jetzt</div>
-                    <div className="text-sm font-bold truncate">{currentJob.customer}</div>
-                    {isRunning && livePrint && (
-                      <div className="mt-2">
-                        <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
-                          <div className="h-full rounded-full shimmer-bar" style={{ width: `${livePrint.progress}%`, background: color }} />
-                        </div>
-                        <div className="flex justify-between text-[9px] font-mono text-muted-foreground mt-1">
-                          <span>{livePrint.progress}%</span>
-                          <span>~{livePrint.finishInMin} min</span>
-                        </div>
-                      </div>
-                    )}
-                    {!isRunning && (
-                      <div className="text-[9px] font-mono text-muted-foreground mt-1">{currentJob.delivery}</div>
-                    )}
-                  </button>
-                ) : (
-                  <div className="mx-3 mb-2 rounded-xl p-3 border border-dashed border-border text-[10px] text-muted-foreground text-center">
-                    Kein Auftrag geplant
-                  </div>
-                )}
-
-                {/* Next job */}
-                {nextJob && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedJob(nextJob)}
-                    className="mx-3 mb-3 flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border hover:bg-muted/30 transition text-left"
-                    style={{ width: "calc(100% - 1.5rem)" }}
-                  >
-                    <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                    <span className="text-[10px] font-semibold truncate flex-1">{nextJob.customer}</span>
-                    <span className="text-[9px] font-mono text-muted-foreground shrink-0">{nextJob.delivery}</span>
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
 
       </div>
 
