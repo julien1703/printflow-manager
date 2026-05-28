@@ -48,23 +48,6 @@ function getNextJob(machine: Machine, currentId?: string): Job | undefined {
   ).sort(sortByDelivery)[0];
 }
 
-function MachineUtilBar({ machine, color }: { machine: Machine; color: string }) {
-  const jobs = JOBS.filter(
-    (j) => j.machine === machine && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
-  );
-  const total = Math.min(jobs.length, 6);
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-1 flex-1 rounded-full transition-all"
-          style={{ background: i < total ? color : "oklch(0.88 0.003 80)" }}
-        />
-      ))}
-    </div>
-  );
-}
 
 export function ProduktionsleitungView() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -244,10 +227,6 @@ export function ProduktionsleitungView() {
               const isBlocked = currentJob?.cascadeConflict || currentJob?.orderStatus === "Blockiert";
               const isRunning = currentJob?.orderStatus === "In Produktion";
               const livePrint = LIVE_PRINT.find((lp) => lp.machine === machine);
-              const jobCount = JOBS.filter(
-                (j) => j.machine === machine && j.orderStatus !== "Abgeschlossen" && j.orderStatus !== "Storniert"
-              ).length;
-
               return (
                 <div
                   key={machine}
@@ -278,10 +257,6 @@ export function ProduktionsleitungView() {
                           style={{ color: isBlocked ? "oklch(0.50 0.22 25)" : isRunning ? "oklch(0.45 0.18 145)" : "var(--muted-foreground)" }}>
                           {isBlocked ? "Blockiert" : isRunning ? "Läuft" : "Bereit"}
                         </span>
-                        <span className="ml-auto text-[9px] font-mono text-muted-foreground">{jobCount}</span>
-                      </div>
-                      <div className="mt-1.5">
-                        <MachineUtilBar machine={machine} color={color} />
                       </div>
                     </div>
                   </div>
