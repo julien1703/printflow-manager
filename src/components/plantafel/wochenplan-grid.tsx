@@ -1,6 +1,8 @@
+import { useRef, useCallback, useLayoutEffect } from "react";
 import { useDroppable, useDndContext } from "@dnd-kit/core";
 import { WEEKDAYS, SLOTS_BY_MACHINE, TODAY_INDEX, MACHINE_META, JOBS } from "@/lib/mock-data";
 import type { Machine, Weekday, Slot, Job } from "@/lib/mock-data";
+import { computeDropHour } from "@/lib/drop-utils";
 import { JobCard } from "./job-card";
 
 type GridJob = {
@@ -78,6 +80,7 @@ function DropZoneRow({
   slot,
   weekOffset,
   jobs,
+  prevSlotJobs,
   pinnedIds,
   onCardClick,
   onRemove,
@@ -94,6 +97,7 @@ function DropZoneRow({
   slot: Slot;
   weekOffset: number;
   jobs: GridJob[];
+  prevSlotJobs: GridJob[]; // Jobs der Vorgänger-Schicht (für Überlauf-Erkennung)
   pinnedIds: Set<string>;
   onCardClick: (jobId: string) => void;
   onRemove: (key: SlotKey, jobId: string) => void;
@@ -104,37 +108,80 @@ function DropZoneRow({
   dragPointerY: number;
   isLastSlot: boolean;
 }) {
-  const { setNodeRef, isOver, rect } = useDroppable({ id });
+  const { setNodeRef, isOver } = useDroppable({ id });
   const { active } = useDndContext();
   const offsets = computeOffsets(jobs);
 
-  // Ghost-Karte: Position + Höhe für den Drop-Indikator berechnen
-  let ghostTop: number | null = null;
-  let ghostHeight = 20;
-  if (isOver && rect.current) {
-    const relY = Math.max(0, dragPointerY - rect.current.top);
-    const rawOff = (relY / rowHeight) * 8;
-    const snapHour = Math.max(0, Math.min(7, Math.round(rawOff)));
-    ghostTop = (snapHour / 8) * rowHeight;
+  // nodeRef: für dnd-kit und für die Positions-Messung
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+  const combinedRef = useCallback((el: HTMLDivElement | null) => {
+    nodeRef.current = el;
+    setNodeRef(el);
+  }, [setNodeRef]);
 
-    // Druckzeit des aktiven Auftrags herausfinden für korrekte Höhe
-    if (active?.id) {
-      const activeId = active.id as string;
-      let jobId: string | undefined;
-      if (activeId.startsWith("grid:")) {
-        const wp = activeId.slice(5);
-        jobId = wp.slice(wp.lastIndexOf(":") + 1);
-      } else if (activeId.startsWith("eingang:")) jobId = activeId.slice(8);
-      else if (activeId.startsWith("tasche:")) jobId = activeId.slice(7);
-      const dur = JOBS.find((j) => j.id === jobId)?.druckzeitStunden ?? 1;
-      ghostHeight = Math.max(20, Math.min(rowHeight - 8, (dur / 8) * rowHeight));
+  // Ghost-Karte: Position, Höhe und Farbe (Konflikt-Erkennung)
+  // getBoundingClientRect() direkt im Render lesen — erfasst Scroll korrekt.
+  const liveTopRef = useRef(0);
+  useLayoutEffect(() => {
+    if (nodeRef.current) {
+      liveTopRef.current = nodeRef.current.getBoundingClientRect().top;
     }
+  });
+
+  // Gezogenen Job-ID und Druckzeit ermitteln
+  let draggingJobId: string | undefined;
+  let draggingDuration = 1;
+  if (active?.id) {
+    const activeId = active.id as string;
+    if (activeId.startsWith("grid:")) {
+      const wp = activeId.slice(5);
+      draggingJobId = wp.slice(wp.lastIndexOf(":") + 1);
+    } else if (activeId.startsWith("eingang:")) draggingJobId = activeId.slice(8);
+    else if (activeId.startsWith("tasche:"))   draggingJobId = activeId.slice(7);
+    if (draggingJobId) {
+      draggingDuration = JOBS.find((j) => j.id === draggingJobId)?.druckzeitStunden ?? 1;
+    }
+  }
+
+  let ghostTop: number | null = null;
+  let ghostBlocked = false;
+
+  if (isOver) {
+    const currentTop = nodeRef.current
+      ? nodeRef.current.getBoundingClientRect().top
+      : liveTopRef.current;
+    const relY = Math.max(0, dragPointerY - currentTop);
+
+    // Belegte Intervalle dieser Schicht (ohne den gezogenen Auftrag)
+    const ownIntervals = jobs
+      .filter((gj) => gj.jobId !== draggingJobId)
+      .map((gj) => {
+        const dur = JOBS.find((j) => j.id === gj.jobId)?.druckzeitStunden ?? 1;
+        const start = gj.startOffset ?? 0;
+        return { start, end: start + dur };
+      });
+
+    // Überlauf aus der Vorgänger-Schicht (z.B. CD Früh → Spät)
+    const overflowIntervals = prevSlotJobs
+      .filter((gj) => gj.jobId !== draggingJobId)
+      .flatMap((gj) => {
+        const dur = JOBS.find((j) => j.id === gj.jobId)?.druckzeitStunden ?? 1;
+        const start = gj.startOffset ?? 0;
+        const overflowHours = start + dur - 8;
+        return overflowHours > 0.01 ? [{ start: 0, end: overflowHours }] : [];
+      });
+
+    const otherIntervals = [...ownIntervals, ...overflowIntervals];
+
+    const { snapHour, isBlocked } = computeDropHour(relY, rowHeight, otherIntervals, draggingDuration, !isLastSlot);
+    ghostTop    = (snapHour / 8) * rowHeight;
+    ghostBlocked = isBlocked;
   }
 
   return (
     <div
-      ref={setNodeRef}
-      className="relative overflow-hidden"
+      ref={combinedRef}
+      className="relative"
       style={{
         height: rowHeight,
         background: isOver
@@ -163,7 +210,7 @@ function DropZoneRow({
         />
       ))}
 
-      {/* Ghost-Karte: zeigt exakt wo der Auftrag einrasten wird */}
+      {/* Ghost-Karte: zeigt exakt wo der Auftrag einrasten wird; rot = kein Platz */}
       {ghostTop !== null && (
         <div
           style={{
@@ -171,9 +218,15 @@ function DropZoneRow({
             top: ghostTop,
             left: 4,
             right: 4,
-            height: ghostHeight,
-            background: "oklch(0.70 0.14 240 / 0.12)",
-            border: "2px dashed oklch(0.55 0.18 255 / 0.7)",
+            height: isLastSlot
+              ? Math.min(Math.max(20, (draggingDuration / 8) * rowHeight), rowHeight - ghostTop)
+              : Math.max(20, (draggingDuration / 8) * rowHeight),
+            background: ghostBlocked
+              ? "oklch(0.70 0.14 25 / 0.12)"
+              : "oklch(0.70 0.14 240 / 0.12)",
+            border: `2px dashed ${ghostBlocked
+              ? "oklch(0.55 0.22 25 / 0.7)"
+              : "oklch(0.55 0.18 255 / 0.7)"}`,
             borderRadius: 8,
             pointerEvents: "none",
             zIndex: 5,
@@ -186,11 +239,13 @@ function DropZoneRow({
         const fullJob = JOBS.find((j) => j.id === gj.jobId);
         const off = offsets[gj.jobId] ?? 0;
         const top = (off / 8) * rowHeight;
-        const h = cardHeight(fullJob?.druckzeitStunden, rowHeight);
+        // Keine Höhenbegrenzung auf rowHeight — Karte darf schichtübergreifend laufen
+        const hRaw = Math.max(20, ((fullJob?.druckzeitStunden ?? 1) / 8) * rowHeight);
+        const h = isLastSlot ? Math.min(hRaw, rowHeight - top) : hRaw;
         return (
           <div
             key={gj.jobId}
-            style={{ position: "absolute", top, left: 4, right: 4 }}
+            style={{ position: "absolute", top, left: 4, right: 4, zIndex: 2 }}
           >
             <JobCard
               job={fullJob ?? ({
@@ -314,8 +369,11 @@ export function WochenplanGrid({
         return (
         <div
           key={slot}
-          className="grid"
-          style={{ gridTemplateColumns: `64px repeat(${WEEKDAYS.length}, 1fr)` }}
+          className="grid relative"
+          style={{
+            gridTemplateColumns: `64px repeat(${WEEKDAYS.length}, 1fr)`,
+            zIndex: slots.length - slotIndex,
+          }}
         >
           {/* Slot label — Uhrzeit-Lineal, immer aktiv */}
           <div
@@ -381,8 +439,13 @@ export function WochenplanGrid({
             const isToday = weekOffset === 0 && di === TODAY_INDEX;
             const key = slotKey(weekOffset, machine, day, slot);
             const jobs = grid[key] ?? [];
+            // Vorgänger-Schicht für Überlauf-Erkennung
+            const prevSlot = slotIndex > 0 ? slots[slotIndex - 1] : null;
+            const prevSlotJobs = prevSlot
+              ? (grid[slotKey(weekOffset, machine, day, prevSlot)] ?? [])
+              : [];
             return (
-              <div key={day} className="border-r border-border last:border-r-0 overflow-hidden">
+              <div key={day} className="border-r border-border last:border-r-0">
                 <DropZoneRow
                   id={key}
                   machine={machine}
@@ -390,6 +453,7 @@ export function WochenplanGrid({
                   slot={slot}
                   weekOffset={weekOffset}
                   jobs={jobs}
+                  prevSlotJobs={prevSlotJobs}
                   pinnedIds={pinnedIds}
                   onCardClick={onCardClick}
                   onRemove={onRemove}

@@ -1,14 +1,14 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   pointerWithin,
   useSensor,
   useSensors,
   useDraggable,
   type DragEndEvent,
-  type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
@@ -16,6 +16,7 @@ import {
   type Job, type Machine, type Weekday, type Slot,
 } from "@/lib/mock-data";
 import { buildKIPlan, type PlacedJob } from "@/lib/planning-ai";
+import { computeDropHour } from "@/lib/drop-utils";
 import { AuftragDrawer } from "@/components/plantafel/auftrag-drawer";
 import { MachineTabs, type TabView } from "@/components/plantafel/machine-tabs";
 import { WochenplanGrid } from "@/components/plantafel/wochenplan-grid";
@@ -398,7 +399,19 @@ export function WochenplanungView() {
   >({});
   const [notizOverrides, setNotizOverrides] = useState<Record<string, string>>({});
   const [dragPointerY, setDragPointerY] = useState(0);
-  const moveRafRef = useRef<number | null>(null);
+  // Echter Viewport-Y des Zeigers (kein Scroll-Offset eingerechnet).
+  // event.delta in dnd-kit enthält scrollAdjustedTranslate → ist beim Auto-Scroll um den
+  // gescrollten Betrag zu groß. Daher direkt aus window-Pointermove lesen.
+  const rawPointerYRef = useRef(0);
+  useEffect(() => {
+    if (!dragActiveId) return;
+    const handler = (e: PointerEvent) => {
+      rawPointerYRef.current = e.clientY;
+      setDragPointerY(e.clientY);
+    };
+    window.addEventListener("pointermove", handler, { passive: true });
+    return () => window.removeEventListener("pointermove", handler);
+  }, [dragActiveId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -437,6 +450,10 @@ export function WochenplanungView() {
 
   function handleDragStart(event: DragStartEvent) {
     const id = event.active.id as string;
+    // Startwert sofort setzen (useEffect-Listener startet erst nach Re-Render)
+    const startY = (event.activatorEvent as PointerEvent).clientY;
+    rawPointerYRef.current = startY;
+    setDragPointerY(startY);
     setDragActiveId(id);
     if (id.startsWith("grid:")) {
       // format: "grid:{slotKey}:{jobId}" — slotKey has 3 pipes so split from right
@@ -448,65 +465,62 @@ export function WochenplanungView() {
     }
   }
 
-  function handleDragMove(event: DragMoveEvent) {
-    const y = (event.activatorEvent as PointerEvent).clientY + event.delta.y;
-    if (moveRafRef.current !== null) cancelAnimationFrame(moveRafRef.current);
-    moveRafRef.current = requestAnimationFrame(() => {
-      setDragPointerY(y);
-      moveRafRef.current = null;
-    });
-  }
-
-  function calcStartOffset(event: DragEndEvent, slotKeyTarget: string, excludeJobId?: string): number {
+  /**
+   * Berechnet den Startoffset beim Drop.
+   * Gibt null zurück wenn kein Platz vorhanden (Drop blockieren).
+   */
+  function calcStartOffset(
+    event: DragEndEvent,
+    slotKeyTarget: string,
+    draggingDurationHours: number,
+    excludeJobId?: string
+  ): number | null {
     const overRect = event.over?.rect;
-    if (!overRect) return 0;
+    if (!overRect) return null;
 
-    // Zeiger-Y beim Drop: activatorEvent ist das initiale PointerEvent, delta.y die Gesamtverschiebung
-    const pointerY = (event.activatorEvent as PointerEvent).clientY + event.delta.y;
+    const pointerY = rawPointerYRef.current || (event.activatorEvent as PointerEvent).clientY;
     const relativeY = Math.max(0, pointerY - overRect.top);
-    const rawOffset = (relativeY / overRect.height) * 8; // 0–8h
 
-    // Andere Karten im Slot als sortierte Intervalle
-    const others = (grid[slotKeyTarget] ?? [])
+    // Eigene Intervalle im Ziel-Slot
+    const ownIntervals = (grid[slotKeyTarget] ?? [])
       .filter((ej) => ej.jobId !== excludeJobId)
       .map((ej) => {
         const dur = JOBS.find((j) => j.id === ej.jobId)?.druckzeitStunden ?? 1;
         const start = ej.startOffset ?? 0;
         return { start, end: start + dur };
-      })
-      .sort((a, b) => a.start - b.start);
+      });
 
-    // 1. Einrasten an Stunden-Rasterlinie (= jeder sichtbarer Strich)
-    let offset = Math.round(rawOffset);
+    // Überlauf aus der Vorgänger-Schicht desselben Tags
+    const [weekOffsetStr, machineStr, dayStr, slotStr] = slotKeyTarget.split("|");
+    const slotMachine = machineStr as Machine;
+    const machineSlots = SLOTS_BY_MACHINE[slotMachine];
+    const slotIdx = machineSlots.indexOf(slotStr as Slot);
+    const prevSlotStr = slotIdx > 0 ? machineSlots[slotIdx - 1] : null;
+    const prevSlotKey = prevSlotStr ? `${weekOffsetStr}|${machineStr}|${dayStr}|${prevSlotStr}` : null;
+    const overflowIntervals = prevSlotKey
+      ? (grid[prevSlotKey] ?? [])
+          .filter((ej) => ej.jobId !== excludeJobId)
+          .flatMap((ej) => {
+            const dur = JOBS.find((j) => j.id === ej.jobId)?.druckzeitStunden ?? 1;
+            const start = ej.startOffset ?? 0;
+            const overflowHours = start + dur - 8;
+            return overflowHours > 0.01 ? [{ start: 0, end: overflowHours }] : [];
+          })
+      : [];
 
-    // 2. Kartenende-Snap überschreibt Rasterlinie wenn innerhalb 0.6h
-    for (const s of others) {
-      if (Math.abs(rawOffset - s.end) < 0.6) {
-        offset = s.end;
-        break;
-      }
-    }
+    const others = [...ownIntervals, ...overflowIntervals];
 
-    // 3. Überlappung auflösen: fällt offset in eine bestehende Karte → ans Ende schieben
-    let guard = 0;
-    let moved = true;
-    while (moved && guard < 10) {
-      moved = false;
-      guard++;
-      for (const s of others) {
-        if (offset >= s.start - 0.01 && offset < s.end) {
-          offset = s.end;
-          moved = true;
-          break;
-        }
-      }
-    }
+    const { snapHour, isBlocked } = computeDropHour(
+      relativeY,
+      overRect.height,
+      others,
+      draggingDurationHours
+    );
 
-    return Math.max(0, Math.min(7, offset));
+    return isBlocked ? null : snapHour;
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    if (moveRafRef.current !== null) { cancelAnimationFrame(moveRafRef.current); moveRafRef.current = null; }
     setDragActiveId(null);
     setDragSourceSlot(null);
     const { active, over } = event;
@@ -528,11 +542,9 @@ export function WochenplanungView() {
       const job = eingang.find((j) => j.id === jobId) ?? tasche.find((j) => j.id === jobId);
       if (!job || job.machine !== machine) return;
 
-      const existingJobs = grid[slotKeyTarget] ?? [];
-      const usedHours = existingJobs.reduce((sum, gj) => sum + (JOBS.find((x) => x.id === gj.jobId)?.druckzeitStunden ?? 1), 0);
-      if (usedHours + (job.druckzeitStunden ?? 1) > 8) return;
+      const startOffset = calcStartOffset(event, slotKeyTarget, job.druckzeitStunden ?? 1);
+      if (startOffset === null) return; // kein Platz
 
-      const startOffset = calcStartOffset(event, slotKeyTarget);
       setGrid((prev) => ({
         ...prev,
         [slotKeyTarget]: [...(prev[slotKeyTarget] ?? []), { jobId: job.id, customer: job.customer, machine: job.machine, delivery: job.delivery, phase: "Im Druck", aiSuggested: false, startOffset } as ManualJob],
@@ -556,9 +568,12 @@ export function WochenplanungView() {
       const fullJob = JOBS.find((j) => j.id === jobId);
       if (fullJob && fullJob.machine !== machine) return;
 
-      // Same slot: update startOffset (reposition within slot)
-      const startOffset = calcStartOffset(event, slotKeyTarget, jobId);
+      const duration = fullJob?.druckzeitStunden ?? 1;
+
+      // Same slot: Neupositionierung
       if (sourceSlot === slotKeyTarget) {
+        const startOffset = calcStartOffset(event, slotKeyTarget, duration, jobId);
+        if (startOffset === null) return; // kein freier Platz (trotz Neupositionierung)
         setGrid((prev) => ({
           ...prev,
           [slotKeyTarget]: (prev[slotKeyTarget] ?? []).map((gj) =>
@@ -568,9 +583,9 @@ export function WochenplanungView() {
         return;
       }
 
-      const targetJobs = grid[slotKeyTarget] ?? [];
-      const usedHours = targetJobs.reduce((sum, gj) => sum + (JOBS.find((x) => x.id === gj.jobId)?.druckzeitStunden ?? 1), 0);
-      if (usedHours + (fullJob?.druckzeitStunden ?? 1) > 8) return;
+      // Different slot: in Ziel-Slot verschieben
+      const startOffset = calcStartOffset(event, slotKeyTarget, duration, jobId);
+      if (startOffset === null) return; // kein Platz im Ziel-Slot
 
       setGrid((prev) => {
         const next = { ...prev };
@@ -607,7 +622,13 @@ export function WochenplanungView() {
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+    <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
       <div className="flex flex-col fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
         {/* Page header */}
         <div className="px-8 pt-8 pb-5 shrink-0 border-b border-border">

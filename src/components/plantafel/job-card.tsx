@@ -71,8 +71,6 @@ export function JobCard({
   const deliveryColor =
     job.status === "Hinterher"
       ? "oklch(0.52 0.20 25)"
-      : job.status === "Knapp"
-      ? "oklch(0.55 0.16 55)"
       : "oklch(0.50 0.04 0)";
 
   return (
@@ -97,51 +95,58 @@ export function JobCard({
       )}
 
       <div className="px-2 pt-1 pb-1 flex flex-col h-full overflow-hidden">
-        {/* Badge row */}
-        <div className="flex items-center gap-1 mb-0.5">
-          {job.isNew && (
-            <span className="text-[7px] font-bold rounded px-1 py-0.5 leading-none" style={{ background: "oklch(0.88 0.10 145 / 0.4)", color: "oklch(0.38 0.16 145)" }}>
-              NEU
-            </span>
+        {/* Customer + Product + (bei kleinen Karten: Datum/Dauer inline rechts) */}
+        <div className="flex items-baseline gap-1 overflow-hidden">
+          <div className="text-[11px] font-bold leading-tight truncate shrink-0 max-w-[55%]">
+            {isAi && "✦ "}{gridJob.customer}
+          </div>
+          {job.product && height >= 44 && (
+            <div className="text-[9px] text-muted-foreground leading-tight truncate min-w-0">
+              {job.product}{job.grammatur ? ` · ${job.grammatur}g` : ""}
+            </div>
           )}
-          {job.dispersionslack && (
-            <span className="text-[7px] rounded px-1 py-0.5 leading-none bg-white/60 text-muted-foreground font-medium">
-              Lack
-            </span>
-          )}
-          {job.sonderfarbe && (
-            <span className="text-[7px] rounded px-1 py-0.5 leading-none font-medium" style={{ background: "oklch(0.93 0.12 50 / 0.2)", color: "oklch(0.50 0.18 50)" }}>
-              {job.sonderfarbe}
-            </span>
+          {height < 44 && (
+            <div className="flex items-center gap-1 ml-auto shrink-0">
+              <span className="text-[9px] font-mono" style={{ color: deliveryColor }}>
+                {gridJob.delivery}
+              </span>
+              {job.druckzeitStunden && (
+                <span className="text-[9px] font-mono text-muted-foreground">
+                  {job.druckzeitStunden}h
+                </span>
+              )}
+            </div>
           )}
           {isPinned && (
-            <Lock className="h-2.5 w-2.5 ml-auto shrink-0" style={{ color: "oklch(0.55 0.22 255)" }} />
+            <Lock className="h-2.5 w-2.5 shrink-0" style={{ color: "oklch(0.55 0.22 255)" }} />
           )}
         </div>
 
-        {/* Customer name */}
-        <div className="text-[11px] font-bold truncate leading-tight">
-          {isAi && "✦ "}{gridJob.customer}
-        </div>
-
-        {/* Product details */}
-        {job.product && (
-          <div className="text-[9px] text-muted-foreground truncate leading-tight">
-            {job.product}{job.grammatur ? ` · ${job.grammatur}g` : ""}
+        {/* Footer: delivery + details + hours — nur wenn genug Platz */}
+        {height >= 44 && (
+          <div className="flex items-center justify-between mt-auto gap-1">
+            <span className="text-[9px] font-mono" style={{ color: deliveryColor }}>
+              {gridJob.delivery}
+            </span>
+            <div className="flex items-center gap-1 ml-auto">
+              {job.dispersionslack && (
+                <span className="text-[7px] rounded px-1 py-0.5 leading-none bg-white/60 text-muted-foreground font-medium">
+                  Lack
+                </span>
+              )}
+              {job.sonderfarbe && (
+                <span className="text-[7px] rounded px-1 py-0.5 leading-none font-medium" style={{ background: "oklch(0.93 0.12 50 / 0.2)", color: "oklch(0.50 0.18 50)" }}>
+                  {job.sonderfarbe}
+                </span>
+              )}
+              {job.druckzeitStunden && (
+                <span className="text-[9px] font-mono text-muted-foreground">
+                  {job.druckzeitStunden}h
+                </span>
+              )}
+            </div>
           </div>
         )}
-
-        {/* Footer: delivery + hours */}
-        <div className="flex items-center justify-between mt-auto">
-          <span className="text-[9px] font-mono" style={{ color: deliveryColor }}>
-            {gridJob.delivery}
-          </span>
-          {job.druckzeitStunden && (
-            <span className="text-[9px] font-mono text-muted-foreground">
-              {job.druckzeitStunden}h
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Remove button */}
