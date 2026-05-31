@@ -17,6 +17,7 @@ export interface PlacedJob {
   phase: "Im Druck";
   aiSuggested: true;
   reason: string;
+  startOffset?: number; // hours from slot start (0–8)
 }
 
 export type PlanSuggestion = Record<SlotKey, PlacedJob>;

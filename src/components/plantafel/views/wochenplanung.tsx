@@ -1,17 +1,22 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   DndContext,
+  DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   useDraggable,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   JOBS, SLOTS_BY_MACHINE,
   type Job, type Machine, type Weekday, type Slot,
 } from "@/lib/mock-data";
 import { buildKIPlan, type PlacedJob } from "@/lib/planning-ai";
+import { computeDropHour } from "@/lib/drop-utils";
 import { AuftragDrawer } from "@/components/plantafel/auftrag-drawer";
 import { MachineTabs, type TabView } from "@/components/plantafel/machine-tabs";
 import { WochenplanGrid } from "@/components/plantafel/wochenplan-grid";
@@ -29,6 +34,7 @@ interface ManualJob {
   phase: "Im Druck";
   aiSuggested: false;
   reason?: string;
+  startOffset?: number; // hours from slot start (0–8)
 }
 
 type GridJob = PlacedJob | ManualJob;
@@ -109,25 +115,17 @@ function DigiStatus() {
   );
 }
 
-// ─── PoolKarte — einheitliche Karte für alle ungeplanten Aufträge ─────────────
+// ─── PoolKarteInhalt — reiner visueller Inhalt (auch für DragOverlay) ─────────
 
-function PoolKarte({
+function PoolKarteInhalt({
   job,
   isNew,
   isPinned,
-  onClick,
 }: {
   job: Job;
   isNew: boolean;
   isPinned: boolean;
-  onClick: () => void;
 }) {
-  const prefix = isNew ? "eingang" : "tasche";
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `${prefix}:${job.id}`,
-    data: { jobId: job.id, source: prefix },
-  });
-
   const machineColor =
     job.machine === "CD"   ? "var(--machine-cd)"   :
     job.machine === "SM5"  ? "var(--machine-sm5)"  :
@@ -139,17 +137,7 @@ function PoolKarte({
 
   return (
     <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      onClick={onClick}
-      className={`shrink-0 rounded-2xl overflow-hidden transition-all select-none ${
-        isNew ? "neu-ring" : ""
-      } ${
-        isDragging
-          ? "opacity-25 scale-95 cursor-grabbing"
-          : "cursor-grab hover:shadow-lg hover:-translate-y-1"
-      }`}
+      className="rounded-2xl overflow-hidden"
       style={{
         width: 188,
         background: "oklch(1.0 0 0)",
@@ -255,24 +243,64 @@ function PoolKarte({
   );
 }
 
+// ─── PoolKarte — draggable Wrapper ────────────────────────────────────────────
+
+function PoolKarte({
+  job,
+  isNew,
+  isPinned,
+  onClick,
+}: {
+  job: Job;
+  isNew: boolean;
+  isPinned: boolean;
+  onClick: () => void;
+}) {
+  const prefix = isNew ? "eingang" : "tasche";
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `${prefix}:${job.id}`,
+    data: { jobId: job.id, source: prefix },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onClick={onClick}
+      className={`shrink-0 select-none transition-all ${
+        isDragging
+          ? "opacity-25 scale-95 cursor-grabbing"
+          : "cursor-grab hover:shadow-lg hover:-translate-y-1"
+      } ${isNew ? "neu-ring rounded-2xl" : ""}`}
+    >
+      <PoolKarteInhalt job={job} isNew={isNew} isPinned={isPinned} />
+    </div>
+  );
+}
+
 // ─── AuftragsPool — kombinierter horizontaler Streifen ────────────────────────
 
 function AuftragsPool({
   eingang,
   tasche,
   pinnedIds,
+  activeMachine,
   onCardClick,
   onKiVorschlag,
 }: {
   eingang: Job[];
   tasche: Job[];
   pinnedIds: Set<string>;
+  activeMachine: TabView;
   onCardClick: (id: string) => void;
   onKiVorschlag: () => void;
 }) {
-  const total = eingang.length + tasche.length;
+  const filterMachine = activeMachine === "Gesamt" ? null : activeMachine;
+  const visibleEingang = filterMachine ? eingang.filter((j) => j.machine === filterMachine) : eingang;
+  const visibleTasche  = filterMachine ? tasche.filter((j)  => j.machine === filterMachine) : tasche;
 
-  if (total === 0) return null;
+  const total = eingang.length + tasche.length;
 
   return (
     <div
@@ -288,14 +316,14 @@ function AuftragsPool({
           className="rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center text-[10px] font-bold"
           style={{ background: "oklch(0.20 0.008 255)", color: "white" }}
         >
-          {total}
+          {filterMachine ? `${visibleEingang.length + visibleTasche.length}/${total}` : total}
         </span>
-        {eingang.length > 0 && (
+        {visibleEingang.length > 0 && (
           <span
             className="rounded-full px-2 py-0.5 text-[9px] font-bold pulse-chip"
             style={{ background: "oklch(0.92 0.08 145 / 0.3)", color: "oklch(0.35 0.18 145)" }}
           >
-            {eingang.length} NEU
+            {visibleEingang.length} NEU
           </span>
         )}
         <button
@@ -313,7 +341,7 @@ function AuftragsPool({
 
       {/* Karten */}
       <div className="flex gap-3 overflow-x-auto px-6 py-3">
-        {eingang.map((job) => (
+        {visibleEingang.map((job) => (
           <PoolKarte
             key={job.id}
             job={job}
@@ -322,10 +350,10 @@ function AuftragsPool({
             onClick={() => onCardClick(job.id)}
           />
         ))}
-        {eingang.length > 0 && tasche.length > 0 && (
+        {visibleEingang.length > 0 && visibleTasche.length > 0 && (
           <div className="shrink-0 w-px self-stretch my-2 rounded-full" style={{ background: "oklch(0.87 0.003 255)" }} />
         )}
-        {tasche.map((job) => (
+        {visibleTasche.map((job) => (
           <PoolKarte
             key={job.id}
             job={job}
@@ -334,6 +362,11 @@ function AuftragsPool({
             onClick={() => onCardClick(job.id)}
           />
         ))}
+        {visibleEingang.length === 0 && visibleTasche.length === 0 && (
+          <p className="text-[11px] text-muted-foreground py-4">
+            {filterMachine ? `Alle ${filterMachine}-Aufträge eingeplant` : "Alle Aufträge eingeplant"}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -355,10 +388,26 @@ export function WochenplanungView({ readOnly = false }: { readOnly?: boolean }) 
     () => new Set(JOBS.filter((j) => j.festgepinnt).map((j) => j.id))
   );
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  const [dragSourceSlot, setDragSourceSlot] = useState<string | null>(null);
   const [prioritaetOverrides, setPrioritaetOverrides] = useState<
     Record<string, Job["prioritaet"]>
   >({});
   const [notizOverrides, setNotizOverrides] = useState<Record<string, string>>({});
+  const [dragPointerY, setDragPointerY] = useState(0);
+  // Echter Viewport-Y des Zeigers (kein Scroll-Offset eingerechnet).
+  // event.delta in dnd-kit enthält scrollAdjustedTranslate → ist beim Auto-Scroll um den
+  // gescrollten Betrag zu groß. Daher direkt aus window-Pointermove lesen.
+  const rawPointerYRef = useRef(0);
+  useEffect(() => {
+    if (!dragActiveId) return;
+    const handler = (e: PointerEvent) => {
+      rawPointerYRef.current = e.clientY;
+      setDragPointerY(e.clientY);
+    };
+    window.addEventListener("pointermove", handler, { passive: true });
+    return () => window.removeEventListener("pointermove", handler);
+  }, [dragActiveId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -395,60 +444,150 @@ export function WochenplanungView({ readOnly = false }: { readOnly?: boolean }) 
     });
   }
 
+  function handleDragStart(event: DragStartEvent) {
+    const id = event.active.id as string;
+    const startY = (event.activatorEvent as PointerEvent).clientY;
+    rawPointerYRef.current = startY;
+    setDragPointerY(startY);
+    setDragActiveId(id);
+    if (id.startsWith("grid:")) {
+      const withoutPrefix = id.slice(5);
+      const lastColon = withoutPrefix.lastIndexOf(":");
+      setDragSourceSlot(withoutPrefix.slice(0, lastColon));
+    } else {
+      setDragSourceSlot(null);
+    }
+  }
+
+  /**
+   * Berechnet den Startoffset beim Drop.
+   * Gibt null zurück wenn kein Platz vorhanden (Drop blockieren).
+   */
+  function calcStartOffset(
+    event: DragEndEvent,
+    slotKeyTarget: string,
+    draggingDurationHours: number,
+    excludeJobId?: string
+  ): number | null {
+    const overRect = event.over?.rect;
+    if (!overRect) return null;
+
+    const pointerY = rawPointerYRef.current || (event.activatorEvent as PointerEvent).clientY;
+    const relativeY = Math.max(0, pointerY - overRect.top);
+
+    const ownIntervals = (grid[slotKeyTarget] ?? [])
+      .filter((ej) => ej.jobId !== excludeJobId)
+      .map((ej) => {
+        const dur = JOBS.find((j) => j.id === ej.jobId)?.druckzeitStunden ?? 1;
+        const start = ej.startOffset ?? 0;
+        return { start, end: start + dur };
+      });
+
+    const [weekOffsetStr, machineStr, dayStr, slotStr] = slotKeyTarget.split("|");
+    const slotMachine = machineStr as Machine;
+    const machineSlots = SLOTS_BY_MACHINE[slotMachine];
+    const slotIdx = machineSlots.indexOf(slotStr as Slot);
+    const prevSlotStr = slotIdx > 0 ? machineSlots[slotIdx - 1] : null;
+    const prevSlotKey = prevSlotStr ? `${weekOffsetStr}|${machineStr}|${dayStr}|${prevSlotStr}` : null;
+    const overflowIntervals = prevSlotKey
+      ? (grid[prevSlotKey] ?? [])
+          .filter((ej) => ej.jobId !== excludeJobId)
+          .flatMap((ej) => {
+            const dur = JOBS.find((j) => j.id === ej.jobId)?.druckzeitStunden ?? 1;
+            const start = ej.startOffset ?? 0;
+            const overflowHours = start + dur - 8;
+            return overflowHours > 0.01 ? [{ start: 0, end: overflowHours }] : [];
+          })
+      : [];
+
+    const others = [...ownIntervals, ...overflowIntervals];
+
+    const { snapHour, isBlocked } = computeDropHour(
+      relativeY,
+      overRect.height,
+      others,
+      draggingDurationHours
+    );
+
+    return isBlocked ? null : snapHour;
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    setDragActiveId(null);
+    setDragSourceSlot(null);
     const { active, over } = event;
     if (!over) return;
 
     const activeId = active.id as string;
     const slotKeyTarget = over.id as string;
 
-    // Determine job ID — draggables use prefix "eingang:" or "tasche:"
-    const jobId = activeId.startsWith("eingang:")
-      ? activeId.slice(8)
-      : activeId.startsWith("tasche:")
-      ? activeId.slice(7)
-      : activeId;
-
-    // Parse slot key: "weekOffset|machine|day|slot"
     const parts = slotKeyTarget.split("|");
     if (parts.length !== 4) return;
-    const [weekOffsetStr, machine, day, slot] = parts as [string, Machine, Weekday, Slot];
-    const targetWeekOffset = parseInt(weekOffsetStr, 10);
+    const [, machine, day, slot] = parts as [string, Machine, Weekday, Slot];
 
     if (!SLOTS_BY_MACHINE[machine].includes(slot)) return;
 
-    const job =
-      eingang.find((j) => j.id === jobId) ??
-      tasche.find((j) => j.id === jobId);
-    if (!job) return;
+    // ── Case A: drag from pool (eingang / tasche) ──
+    if (activeId.startsWith("eingang:") || activeId.startsWith("tasche:")) {
+      const jobId = activeId.startsWith("eingang:") ? activeId.slice(8) : activeId.slice(7);
+      const job = eingang.find((j) => j.id === jobId) ?? tasche.find((j) => j.id === jobId);
+      if (!job || job.machine !== machine) return;
 
-    // Machine must match
-    if (job.machine !== machine) return;
+      const startOffset = calcStartOffset(event, slotKeyTarget, job.druckzeitStunden ?? 1);
+      if (startOffset === null) return;
 
-    // Capacity check: sum of existing hours in slot ≤ 8h
-    const existingJobs = grid[slotKeyTarget] ?? [];
-    const usedHours = existingJobs.reduce((sum, gj) => {
-      const j = JOBS.find((x) => x.id === gj.jobId);
-      return sum + (j?.druckzeitStunden ?? 1);
-    }, 0);
-    if (usedHours + (job.druckzeitStunden ?? 1) > 8) return;
+      setGrid((prev) => ({
+        ...prev,
+        [slotKeyTarget]: [...(prev[slotKeyTarget] ?? []), { jobId: job.id, customer: job.customer, machine: job.machine, delivery: job.delivery, phase: "Im Druck", aiSuggested: false, startOffset } as ManualJob],
+      }));
+      setEingang((prev) => prev.filter((j) => j.id !== jobId));
+      setTasche((prev) => prev.filter((j) => j.id !== jobId));
+      return;
+    }
 
-    const newGridJob: ManualJob = {
-      jobId: job.id,
-      customer: job.customer,
-      machine: job.machine,
-      delivery: job.delivery,
-      phase: "Im Druck",
-      aiSuggested: false,
-    };
+    // ── Case B: drag from grid ──
+    if (activeId.startsWith("grid:")) {
+      const withoutPrefix = activeId.slice(5);
+      const lastColon = withoutPrefix.lastIndexOf(":");
+      const sourceSlot = withoutPrefix.slice(0, lastColon);
+      const jobId = withoutPrefix.slice(lastColon + 1);
 
-    setGrid((prev) => ({
-      ...prev,
-      [slotKeyTarget]: [...(prev[slotKeyTarget] ?? []), newGridJob],
-    }));
+      const sourceJobs = grid[sourceSlot] ?? [];
+      const movingJob = sourceJobs.find((gj) => gj.jobId === jobId);
+      if (!movingJob) return;
 
-    setEingang((prev) => prev.filter((j) => j.id !== jobId));
-    setTasche((prev) => prev.filter((j) => j.id !== jobId));
+      const fullJob = JOBS.find((j) => j.id === jobId);
+      if (fullJob && fullJob.machine !== machine) return;
+
+      const duration = fullJob?.druckzeitStunden ?? 1;
+
+      // Same slot: Neupositionierung
+      if (sourceSlot === slotKeyTarget) {
+        const startOffset = calcStartOffset(event, slotKeyTarget, duration, jobId);
+        if (startOffset === null) return;
+        setGrid((prev) => ({
+          ...prev,
+          [slotKeyTarget]: (prev[slotKeyTarget] ?? []).map((gj) =>
+            gj.jobId === jobId ? { ...gj, startOffset } : gj
+          ),
+        }));
+        return;
+      }
+
+      // Different slot: in Ziel-Slot verschieben
+      const startOffset = calcStartOffset(event, slotKeyTarget, duration, jobId);
+      if (startOffset === null) return;
+
+      setGrid((prev) => {
+        const next = { ...prev };
+        const kept = (next[sourceSlot] ?? []).filter((gj) => gj.jobId !== jobId);
+        if (kept.length === 0) delete next[sourceSlot];
+        else next[sourceSlot] = kept;
+        next[slotKeyTarget] = [...(next[slotKeyTarget] ?? []), { ...movingJob, startOffset }];
+        return next;
+      });
+      return;
+    }
   }
 
   function removeFromGrid(key: SlotKey, jobId: string) {
@@ -473,119 +612,173 @@ export function WochenplanungView({ readOnly = false }: { readOnly?: boolean }) 
     }
   }
 
-  const gridContent = (
-    <div className="flex flex-col fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
-      {/* Page header */}
-      <div className="px-8 pt-8 pb-5 shrink-0 border-b border-border">
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold mb-2">
-          {readOnly ? "Wochenübersicht · Nur lesend" : "Produktionsleitung · Wochenplanung"}
+  return (
+    <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+      <div className="flex flex-col fade-swap" style={{ minHeight: "calc(100vh - 88px)" }}>
+        {/* Page header */}
+        <div className="px-8 pt-8 pb-5 shrink-0 border-b border-border">
+          <h1 className="editorial-header text-4xl">Wochenplanung</h1>
         </div>
-        <h1 className="editorial-header text-4xl">Wochenplanung</h1>
-      </div>
 
-      {/* Auftragspool — nur bei editierbarer Ansicht */}
-      {!readOnly && (() => {
-        const poolEingang = activeMachine === "Gesamt"
-          ? eingang
-          : activeMachine === "Digi"
-          ? []
-          : eingang.filter((j) => j.machine === activeMachine);
+        {/* Auftragspool */}
+        <AuftragsPool
+          eingang={eingang}
+          tasche={tasche}
+          pinnedIds={pinnedIds}
+          activeMachine={activeMachine}
+          onCardClick={(id) => setSelectedJobId(id)}
+          onKiVorschlag={handleKiPlan}
+        />
 
-        const poolTasche = activeMachine === "Gesamt"
-          ? tasche
-          : activeMachine === "Digi"
-          ? []
-          : tasche.filter((j) => j.machine === activeMachine);
+        {/* Machine Tabs */}
+        <MachineTabs
+          activeTab={activeMachine}
+          onChange={setActiveMachine}
+          eingang={eingang}
+        />
 
-        return (
-          <AuftragsPool
-            eingang={poolEingang}
-            tasche={poolTasche}
-            pinnedIds={pinnedIds}
-            onCardClick={(id) => setSelectedJobId(id)}
-            onKiVorschlag={handleKiPlan}
-          />
-        );
-      })()}
+        {/* Tab content */}
+        <div className="flex flex-1 overflow-hidden">
+          {activeMachine === "Gesamt" ? (
+            <div className="flex flex-col flex-1 divide-y divide-border overflow-auto">
+              {/* KW-Navigation für Gesamt-Ansicht */}
+              <div className="flex items-center gap-1 px-6 py-2 border-b border-border bg-background/80 backdrop-blur-sm shrink-0 sticky top-0 z-10">
+                <button
+                  type="button"
+                  onClick={() => setCurrentWeekOffset((o) => Math.max(0, o - 1))}
+                  disabled={currentWeekOffset === 0}
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30 transition"
+                >‹</button>
+                {([21, 22, 23, 24] as const).map((kw, i) => (
+                  <button
+                    key={kw}
+                    type="button"
+                    onClick={() => setCurrentWeekOffset(i)}
+                    className="px-3 py-1 rounded text-sm font-medium transition"
+                    style={
+                      i === currentWeekOffset
+                        ? { background: "oklch(0.20 0.00 0)", color: "white" }
+                        : { color: "oklch(0.45 0.00 0)" }
+                    }
+                  >
+                    KW {kw}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setCurrentWeekOffset((o) => Math.min(3, o + 1))}
+                  disabled={currentWeekOffset === 3}
+                  className="p-1 rounded hover:bg-muted disabled:opacity-30 transition"
+                >›</button>
+              </div>
 
-      {/* Machine Tabs */}
-      <MachineTabs
-        activeTab={activeMachine}
-        onChange={setActiveMachine}
-        eingang={readOnly ? [] : eingang}
-      />
-
-      {/* Tab content */}
-      <div className="flex flex-1 overflow-hidden">
-        {activeMachine === "Gesamt" ? (
-          <div className="flex flex-col flex-1 divide-y divide-border">
-            {(["CD", "SM5", "RZK"] as const).map((machine) => (
-              <div key={machine} className="shrink-0">
-                <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
-                  {machine === "SM5" ? "SM528" : machine}
+              {(["CD", "SM5", "RZK"] as const).map((machine) => (
+                <div key={machine} className="shrink-0">
+                  <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
+                    {machine === "SM5" ? "SM528" : machine}
+                  </div>
+                  <WochenplanGrid
+                    machine={machine}
+                    weekOffset={currentWeekOffset}
+                    onWeekOffsetChange={setCurrentWeekOffset}
+                    grid={grid}
+                    pinnedIds={pinnedIds}
+                    onCardClick={(jobId) => setSelectedJobId(jobId)}
+                    onRemove={removeFromGrid}
+                    hideKwNav
+                    isDraggingActive={dragActiveId !== null}
+                    dragPointerY={dragPointerY}
+                  />
                 </div>
-                <WochenplanGrid
-                  machine={machine}
-                  weekOffset={currentWeekOffset}
-                  onWeekOffsetChange={setCurrentWeekOffset}
-                  grid={grid}
-                  pinnedIds={pinnedIds}
-                  onCardClick={(jobId) => setSelectedJobId(jobId)}
-                  onRemove={removeFromGrid}
-                  hideKwNav
-                  readOnly={readOnly}
-                />
+              ))}
+              <div className="shrink-0">
+                <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
+                  Digi
+                </div>
+                <DigiStatus />
               </div>
-            ))}
-            <div className="shrink-0">
-              <div className="px-6 py-2 bg-muted/30 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground border-b border-border">
-                Digi
-              </div>
-              <DigiStatus />
             </div>
-          </div>
-        ) : activeMachine === "Digi" ? (
-          <DigiStatus />
-        ) : (
-          <WochenplanGrid
-            machine={activeMachine}
-            weekOffset={currentWeekOffset}
-            onWeekOffsetChange={setCurrentWeekOffset}
-            grid={grid}
-            pinnedIds={pinnedIds}
-            onCardClick={(jobId) => setSelectedJobId(jobId)}
-            onRemove={removeFromGrid}
-            readOnly={readOnly}
+          ) : activeMachine === "Digi" ? (
+            <DigiStatus />
+          ) : (
+            <WochenplanGrid
+              machine={activeMachine}
+              weekOffset={currentWeekOffset}
+              onWeekOffsetChange={setCurrentWeekOffset}
+              grid={grid}
+              pinnedIds={pinnedIds}
+              onCardClick={(jobId) => setSelectedJobId(jobId)}
+              onRemove={removeFromGrid}
+              isDraggingActive={dragActiveId !== null}
+              dragPointerY={dragPointerY}
+            />
+          )}
+        </div>
+
+        {/* Auftrag Drawer */}
+        {selectedJob && (
+          <AuftragDrawer
+            job={{
+              ...selectedJob,
+              prioritaet: prioritaetOverrides[selectedJob.id] ?? selectedJob.prioritaet,
+              notiz: notizOverrides[selectedJob.id] ?? selectedJob.notiz ?? null,
+            }}
+            onToggleFestgepinnt={() => togglePinned(selectedJob.id)}
+            onClose={() => setSelectedJobId(null)}
+            onPrioritaetChange={(p) =>
+              setPrioritaetOverrides((prev) => ({ ...prev, [selectedJob.id]: p }))
+            }
+            onNotizChange={(n) =>
+              setNotizOverrides((prev) => ({ ...prev, [selectedJob.id]: n }))
+            }
           />
         )}
       </div>
 
-      {/* Auftrag Drawer */}
-      {selectedJob && (
-        <AuftragDrawer
-          job={{
-            ...selectedJob,
-            prioritaet: prioritaetOverrides[selectedJob.id] ?? selectedJob.prioritaet,
-            notiz: notizOverrides[selectedJob.id] ?? selectedJob.notiz ?? null,
-          }}
-          onToggleFestgepinnt={() => togglePinned(selectedJob.id)}
-          onClose={() => setSelectedJobId(null)}
-          onPrioritaetChange={(p) =>
-            setPrioritaetOverrides((prev) => ({ ...prev, [selectedJob.id]: p }))
-          }
-          onNotizChange={(n) =>
-            setNotizOverrides((prev) => ({ ...prev, [selectedJob.id]: n }))
-          }
-        />
-      )}
-    </div>
-  );
+      {/* Drag Overlay — schwebende Karte, die dem Cursor folgt */}
+      <DragOverlay dropAnimation={null}>
+        {dragActiveId ? (() => {
+          let job: Job | undefined;
+          let isNew = false;
+          let isPinned = false;
 
-  if (readOnly) return gridContent;
+          if (dragActiveId.startsWith("grid:")) {
+            const withoutPrefix = dragActiveId.slice(5);
+            const jobId = withoutPrefix.slice(withoutPrefix.lastIndexOf(":") + 1);
+            job = JOBS.find((j) => j.id === jobId);
+            isPinned = pinnedIds.has(jobId);
+          } else {
+            const rawId = dragActiveId.startsWith("eingang:")
+              ? dragActiveId.slice(8)
+              : dragActiveId.startsWith("tasche:")
+              ? dragActiveId.slice(7)
+              : dragActiveId;
+            job = eingang.find((j) => j.id === rawId) ?? tasche.find((j) => j.id === rawId);
+            isNew = eingang.some((j) => j.id === rawId);
+            isPinned = pinnedIds.has(rawId);
+          }
 
-  return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      {gridContent}
+          if (!job) return null;
+          return (
+            <div
+              className="pointer-events-none"
+              style={{
+                transform: "rotate(-1.5deg) scale(1.04)",
+                transformOrigin: "top left",
+                filter: "drop-shadow(0 8px 24px oklch(0 0 0 / 0.18))",
+              }}
+            >
+              <PoolKarteInhalt job={job} isNew={isNew} isPinned={isPinned} />
+            </div>
+          );
+        })() : null}
+      </DragOverlay>
     </DndContext>
   );
 }
