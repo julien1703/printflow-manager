@@ -140,6 +140,7 @@ function PoolKarteInhalt({
       className="rounded-2xl overflow-hidden"
       style={{
         width: 188,
+        height: 130,
         background: "oklch(1.0 0 0)",
         border: `1.5px solid ${isLate ? "oklch(0.82 0.08 25)" : hasProblem ? "oklch(0.84 0.07 85)" : "oklch(0.90 0.003 255)"}`,
         boxShadow: "0 1px 3px oklch(0 0 0 / 0.06), 0 4px 12px oklch(0 0 0 / 0.04)",
