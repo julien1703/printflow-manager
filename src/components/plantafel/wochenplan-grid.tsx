@@ -50,6 +50,41 @@ interface WochenplanGridProps {
   readOnly?: boolean;
 }
 
+const HOURS = [1, 2, 3, 4, 5, 6, 7]; // tick marks between hours in an 8h shift
+
+function HourGrid({ rowHeight, accent }: { rowHeight: number; accent: string }) {
+  return (
+    <>
+      {HOURS.map((h) => (
+        <div
+          key={h}
+          className="absolute top-0 bottom-0 pointer-events-none"
+          style={{
+            left: h * 60,
+            width: 1,
+            background: h === 4
+              ? `${accent}28`
+              : "oklch(0.88 0.003 255 / 0.8)",
+          }}
+        />
+      ))}
+      {/* Subtle hour labels at 2h, 4h, 6h */}
+      {[2, 4, 6].map((h) => (
+        <div
+          key={`label-${h}`}
+          className="absolute bottom-1 text-[8px] font-mono pointer-events-none select-none"
+          style={{
+            left: h * 60 + 2,
+            color: h === 4 ? `${accent}70` : "oklch(0.75 0.003 255)",
+          }}
+        >
+          {h}h
+        </div>
+      ))}
+    </>
+  );
+}
+
 function DropZoneRow({
   id, slot, weekOffset, jobs, pinnedIds, onCardClick, onRemove, accent, isToday, isRzk, readOnly,
 }: {
@@ -72,11 +107,11 @@ function DropZoneRow({
   return (
     <div
       ref={readOnly ? undefined : setNodeRef}
-      className="relative transition-colors"
+      className="relative transition-colors overflow-hidden"
       style={{
         height: rowHeight,
         background: isOver && !readOnly
-          ? `oklch(0.70 0.14 ${SLOT_META[slot].hue} / 0.12)`
+          ? `oklch(0.70 0.14 ${SLOT_META[slot].hue} / 0.10)`
           : isToday
           ? "oklch(0.97 0.04 85 / 0.30)"
           : undefined,
@@ -85,6 +120,9 @@ function DropZoneRow({
         opacity: isRzk ? 0.75 : 1,
       }}
     >
+      {/* Hour grid lines */}
+      <HourGrid rowHeight={rowHeight} accent={accent} />
+
       {jobs.map((gj) => {
         const fullJob = JOBS.find((j) => j.id === gj.jobId);
         const w = cardWidth(fullJob?.druckzeitStunden);
